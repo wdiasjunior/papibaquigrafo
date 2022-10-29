@@ -1,22 +1,53 @@
 extern crate reqwest;
 extern crate serde;
 
-use serde::Deserialize;
+use serde_json::Value as JsonValue;
+
+// use serde::Deserialize;
+// use serde::Serialize;
 // use std::collections::HashMap;
+// use serde_json::{Result, Value};
 
-#[derive(Debug, Deserialize)]
-pub struct ChapterData {
-  pub id: u32,
-  pub hash: String,
-  pub manga_id: u32,
-  pub server: String,
-  pub page_array: Vec<String>
-}
+// #[derive(Debug, Deserialize)]
+// pub struct Manga {
+//   pub title: String,
+// }
+//
+// #[derive(Debug, Deserialize)]
+// pub struct MangaData {
+//   pub manga: Manga,
+//   pub chapter: HashMap<String, Chapter>,
+// }
+//
+// #[derive(Debug, Deserialize)]
+// pub struct Chapter {
+//   pub volume: String,
+//   pub chapter: String,
+//   pub lang_code: String,
+//   pub group_name: String,
+// }
 
-pub async fn getManga(client: &reqwest::blocking::Client) {
+// #[derive(Debug, Deserialize)]
+// pub struct ChapterData {
+//   pub id: MangaDatau32,
+//   pub hash: String,
+//   pub manga_id: u32,
+//   pub server: String,
+//   pub page_array: Vec<String>
+// }
+
+// #[derive(Serialize, Deserialize, Debug)]
+// struct JSONResponse {
+//   json: HashMap<String, String>,
+// }
+
+pub fn getManga() {
+// pub async fn getManga() -> Result<()> {
+// pub fn getManga(client: &reqwest::blocking::Client) {
+  // let client = reqwest::Client::new();
   // println!("papibaquigrafo");
 
-  // let selectedLanguage: String = "en";
+  // let selectedLanguage = "en".to_string();
   //
   // let mockMangaID = "192aa767-2479-42c1-9780-8d65a2efd36a";
   // let mockMangaChapterID: String = "e543ecb3-17a0-452b-8dda-e01c5837453f";
@@ -47,9 +78,28 @@ pub async fn getManga(client: &reqwest::blocking::Client) {
 
   // let url = reqwest::Url::parse(&mockMangaPage).unwrap();
   let url = reqwest::Url::parse("https://api.mangadex.org/manga/192aa767-2479-42c1-9780-8d65a2efd36a").unwrap();
-  // let url = baseUrl.join(mockMangaID);
+  // // let url = baseUrl.join(mockMangaID);
 
-  let json: ChapterData = client.get(url).send().expect("bad request").json().expect("error parsing json");
-  std::thread::sleep(std::time::Duration::from_secs(1));
-  print!("{:?}", json);
+  // let json: MangaData = client.get(url).send().expect("bad request").json().expect("error parsing json");
+  // // get with parameters
+  // std::thread::sleep(std::time::Duration::from_secs(1));
+  // print!("{:?}", json);
+
+  // let res = reqwest::blocking::get(url).send().expect("bad request").json().expect("error parsing json");
+  // let res = client.get(url).text();
+  // println!("Response Body: {:?}", res);
+  // let json: JSONResponse = serde_json::from_str(&res).unwrap();
+  // print!("{:?}", json);
+
+
+  // let query = vec![
+  //   ("limit", 200),
+  //   ("translatedLanguage", selectedLanguage),
+  // ];
+  // .query(&query).send()
+
+  let body: JsonValue = reqwest::blocking::get(url).expect("bad request").json().expect("error parsing json");
+  println!("body = {:?}", body);
+
+  // Ok(())
 }
