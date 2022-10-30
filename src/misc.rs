@@ -9,6 +9,7 @@ use serde_json::Value as JsonValue;
 // use serde_json::{Result, Value};
 
 // #[derive(Debug, Deserialize)]
+// #[serde(rename_all = "lowercase")]
 // pub struct Manga {
 //   pub title: String,
 // }
@@ -46,7 +47,7 @@ pub fn getManga() {
 // pub fn getManga(client: &reqwest::blocking::Client) {
   // let client = reqwest::Client::new();
   // println!("papibaquigrafo");
-
+  // String::from("");
   // let selectedLanguage = "en".to_string();
   //
   // let mockMangaID = "192aa767-2479-42c1-9780-8d65a2efd36a";
