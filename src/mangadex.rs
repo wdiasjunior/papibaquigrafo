@@ -126,12 +126,12 @@ pub fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters)
       };
       std::fs::create_dir_all(&directory).unwrap();
       let fileExtension = if chapterImagesFileName[j].contains(".jpg") {
-        "jpg"
-      } else if chapterImagesFileName[j].contains(".jpeg") {
-        "jpeg"
-      } else {
-        "png"
-      };
+          "jpg"
+        } else if chapterImagesFileName[j].contains(".jpeg") {
+          "jpeg"
+        } else {
+          "png"
+        };
       let fileName = if j + 1 < 10 {
           format!("{}/00{}.{}", &directory, j + 1, fileExtension)
         } else {
