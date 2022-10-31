@@ -33,6 +33,7 @@ pub struct Title {
 }
 
 pub fn getManga() -> MangaData {
+  // TODO get manga id from user input
   let url = reqwest::Url::parse("https://api.mangadex.org/manga/192aa767-2479-42c1-9780-8d65a2efd36a").unwrap();
 
   let json: JsonValue = reqwest::blocking::get(url).expect("bad request").json().expect("error parsing json");
