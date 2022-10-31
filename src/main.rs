@@ -7,9 +7,9 @@
 mod mangadex;
 
 fn main() {
-  let mangaID = mangadex::getManga();
-  let mangaChapters = mangadex::getMangaChapters(mangaID);
-  // println!("mangaChapters = {:?}", mangaChapters);
-  mangadex::getMangaChapterImages(mangaChapters);
+  let mangaInfo = mangadex::getManga();
+  let mangaChapters = mangadex::getMangaChapters(&mangaInfo);
+  let mangaTitle = mangaInfo.data.attributes.title.en;
+  mangadex::getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
 
 }
