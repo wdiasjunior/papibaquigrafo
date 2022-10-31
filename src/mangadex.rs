@@ -132,7 +132,11 @@ pub fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters)
       } else {
         "png"
       };
-      let fileName = format!("{}/0{}.{}", &directory, j + 1, fileExtension);
+      let fileName = if j + 1 < 10 {
+          format!("{}/00{}.{}", &directory, j + 1, fileExtension)
+        } else {
+          format!("{}/0{}.{}", &directory, j + 1, fileExtension)
+        };
       let mut file = std::fs::File::create(fileName).unwrap();
 
       let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
