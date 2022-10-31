@@ -120,7 +120,10 @@ pub fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters)
     loop {
       let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
       std::fs::create_dir_all(mangaTitleDirectory).unwrap();
-      let directory = format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string());
+      let directory = match &_mangaChapters.data[i].attributes.title {
+        Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
+        None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
+      };
       std::fs::create_dir_all(&directory).unwrap();
       let fileExtension = if chapterImagesFileName[j].contains(".jpg") {
         "jpg"
