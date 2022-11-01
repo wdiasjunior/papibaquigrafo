@@ -1,9 +1,5 @@
 #![allow(non_snake_case)]
 
-// use std::fs;
-// use std::fs::File;
-// use std::{io, thread, time};
-
 mod mangadex;
 
 fn main() {

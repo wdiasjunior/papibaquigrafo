@@ -66,7 +66,6 @@ pub struct ChapterData {
 pub struct ChapterAttributes {
   chapter: String,
   title: Option<String>,
-  // translatedLanguage: String,
 }
 
 pub fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
@@ -83,7 +82,7 @@ pub fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
   let mangaChapters: MangaChapters = serde_json::from_str(&json.to_string()).unwrap();
 
   // println!("mangaChapters = {:?}", mangaChapters);
-  return mangaChapters
+  return mangaChapters;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -105,7 +104,6 @@ pub struct ChapterImages {
 pub fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
   let mut i: usize = 0;
   loop {
-
     let baseUrl = format!("https://api.mangadex.org/at-home/server/{}", _mangaChapters.data[i].id);
 
     let url = reqwest::Url::parse(&baseUrl).unwrap();
