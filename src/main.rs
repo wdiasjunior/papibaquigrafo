@@ -11,7 +11,7 @@ fn main() {
 /*
   TODO
   - inspo -> https://github.com/metafates/mangal
-  - tui
+  - tui -> every tui lib's docs sucks. use simple ass println and read_line? https://github.com/oli-obk/rust-si
     - eye candy -> papibaquigrafo ascii logo and colors?
     - input -> select mangadex or tcbScans
       - mangadex -> user enters manga id (implement search function in the future?)
