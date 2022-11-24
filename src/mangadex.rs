@@ -7,32 +7,32 @@ use serde_json::Value as JsonValue;
 
 //-------------------------------------------------------------------------------------------------
 
-pub type MangaData = MangaDataJSONResponse;
+type MangaData = MangaDataJSONResponse;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MangaDataJSONResponse {
+struct MangaDataJSONResponse {
   result: String,
-  pub data: Data,
+  data: Data,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Data {
+struct Data {
   id: String,
-  pub attributes: MangaAttributes,
+  attributes: MangaAttributes,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MangaAttributes {
-  pub title: Title,
+struct MangaAttributes {
+  title: Title,
   availableTranslatedLanguages: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Title {
-  pub en: String,
+struct Title {
+  en: String,
 }
 
-pub fn getManga() -> MangaData {
+fn getManga() -> MangaData {
   // TODO get manga id from user input
   let url = reqwest::Url::parse("https://api.mangadex.org/manga/192aa767-2479-42c1-9780-8d65a2efd36a").unwrap();
 
@@ -47,28 +47,28 @@ pub fn getManga() -> MangaData {
 
 //-------------------------------------------------------------------------------------------------
 
-pub type MangaChapters = MangaChaptersJSONResponse;
+type MangaChapters = MangaChaptersJSONResponse;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MangaChaptersJSONResponse {
+struct MangaChaptersJSONResponse {
   result: String,
   data: Vec<ChapterData>,
   total: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ChapterData {
+struct ChapterData {
   id: String,
   attributes: ChapterAttributes,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ChapterAttributes {
+struct ChapterAttributes {
   chapter: String,
   title: Option<String>,
 }
 
-pub fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
+fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
   // println!("_mangaInfo.data.id = {:?}", _mangaInfo.data.id);
 
   let queryLimit: i32 = 500; // the limit is 500 - if manga has more than 500 chapters use the offset parameter
@@ -87,21 +87,21 @@ pub fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
 
 //-------------------------------------------------------------------------------------------------
 
-pub type MangaImages = MangaImagesJSONResponse;
+type MangaImages = MangaImagesJSONResponse;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MangaImagesJSONResponse {
+struct MangaImagesJSONResponse {
   result: String,
   chapter: ChapterImages,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ChapterImages {
+struct ChapterImages {
   hash: String,
   data: Vec<String>,
 }
 
-pub fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
+fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
   let mut i: usize = 0;
   loop {
     let baseUrl = format!("https://api.mangadex.org/at-home/server/{}", _mangaChapters.data[i].id);
@@ -157,4 +157,11 @@ pub fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters)
       break;
     }
   }
+}
+
+pub fn mangadex() {
+  let mangaInfo = getManga();
+  let mangaChapters = getMangaChapters(&mangaInfo);
+  let mangaTitle = mangaInfo.data.attributes.title.en;
+  getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
 }

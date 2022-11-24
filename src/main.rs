@@ -3,9 +3,17 @@
 mod mangadex;
 
 fn main() {
-  let mangaInfo = mangadex::getManga();
-  let mangaChapters = mangadex::getMangaChapters(&mangaInfo);
-  let mangaTitle = mangaInfo.data.attributes.title.en;
-  mangadex::getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
-
+  mangadex::mangadex();
 }
+
+/*
+  TODO
+  - inspo -> https://github.com/metafates/mangal
+  - cli
+    - eye candy -> papibaquigrafo ascii logo and colors?
+    - input -> select mangadex or tcbScans
+      - mangadex -> user enters manga id (implement search function in the future?)
+      - tcbScans -> user selects which manga to donwload
+    - generalized String arguments from this video -> https://www.youtube.com/watch?v=b0bgAYJDhhQ
+    -
+*/
