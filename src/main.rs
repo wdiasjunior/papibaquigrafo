@@ -3,13 +3,15 @@
 mod mangadex;
 
 fn main() {
-  mangadex::mangadex();
+  // mangaId -> "d09c8abd-24ec-41de-ac8b-b6381a2f3a63"
+  let mangaId = "d09c8abd-24ec-41de-ac8b-b6381a2f3a63".to_string();
+  mangadex::mangadex(mangaId);
 }
 
 /*
   TODO
   - inspo -> https://github.com/metafates/mangal
-  - cli -> https://rust-cli.github.io/book/index.html
+  - tui
     - eye candy -> papibaquigrafo ascii logo and colors?
     - input -> select mangadex or tcbScans
       - mangadex -> user enters manga id (implement search function in the future?)

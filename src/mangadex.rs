@@ -32,9 +32,10 @@ struct Title {
   en: String,
 }
 
-fn getManga() -> MangaData {
+fn getManga(_mangaId: String) -> MangaData {
   // TODO get manga id from user input
-  let url = reqwest::Url::parse("https://api.mangadex.org/manga/192aa767-2479-42c1-9780-8d65a2efd36a").unwrap();
+  let baseUrl = format!("https://api.mangadex.org/manga/{}", _mangaId);
+  let url = reqwest::Url::parse(&baseUrl).unwrap();
 
   let json: JsonValue = reqwest::blocking::get(url).expect("bad request").json().expect("error parsing json");
 
@@ -159,8 +160,8 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
   }
 }
 
-pub fn mangadex() {
-  let mangaInfo = getManga();
+pub fn mangadex(_mangaId: String) {
+  let mangaInfo = getManga(_mangaId);
   let mangaChapters = getMangaChapters(&mangaInfo);
   let mangaTitle = mangaInfo.data.attributes.title.en;
   getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
