@@ -9,11 +9,13 @@ fn main() {
 /*
   TODO
   - inspo -> https://github.com/metafates/mangal
-  - cli
+  - cli -> https://rust-cli.github.io/book/index.html
     - eye candy -> papibaquigrafo ascii logo and colors?
     - input -> select mangadex or tcbScans
       - mangadex -> user enters manga id (implement search function in the future?)
       - tcbScans -> user selects which manga to donwload
-    - generalized String arguments from this video -> https://www.youtube.com/watch?v=b0bgAYJDhhQ
+    - progress bar
+    - chapter selection
     -
+  - generalized String arguments from this video -> https://www.youtube.com/watch?v=b0bgAYJDhhQ
 */
