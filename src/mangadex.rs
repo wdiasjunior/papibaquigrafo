@@ -5,6 +5,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 
+use indicatif::ProgressBar;
+
 //-------------------------------------------------------------------------------------------------
 
 type MangaData = MangaDataJSONResponse;
@@ -104,6 +106,11 @@ struct ChapterImages {
 
 fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
   let mut i: usize = 0;
+
+  println!("Downloading");
+  let progressBar = ProgressBar::new(_mangaChapters.data.len().try_into().unwrap());
+  progressBar.inc(0);
+
   loop {
     let baseUrl = format!("https://api.mangadex.org/at-home/server/{}", _mangaChapters.data[i].id);
 
@@ -154,13 +161,16 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
 
     if i < _mangaChapters.data.len() - 1 {
       i += 1;
+      progressBar.inc(1);
     } else {
+      progressBar.finish_with_message("done");
       break;
     }
   }
 }
 
 pub fn mangadex(_mangaId: String) {
+  print!("{}", _mangaId);
   let mangaInfo = getManga(_mangaId);
   let mangaChapters = getMangaChapters(&mangaInfo);
   let mangaTitle = mangaInfo.data.attributes.title.en;

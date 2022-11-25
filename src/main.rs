@@ -2,10 +2,39 @@
 
 mod mangadex;
 
+use std::io::{self, BufRead, Write};
+
 fn main() {
   // mangaId -> "d09c8abd-24ec-41de-ac8b-b6381a2f3a63"
-  let mangaId = "d09c8abd-24ec-41de-ac8b-b6381a2f3a63".to_string();
-  mangadex::mangadex(mangaId);
+  // let mangaId = "d09c8abd-24ec-41de-ac8b-b6381a2f3a63".to_string();
+  // mangadex::mangadex(mangaId);
+
+  print!("Choose an option: \n1: Mangadex \n2: TCB Scans\n");
+  loop {
+    print!("-> ");
+    std::io::stdout().flush().expect("failed to flush stdout");
+
+    let mut userInput = String::new();
+    let stdin = io::stdin();
+    stdin.read_line(&mut userInput).expect("Could not read line");
+
+    match userInput.trim() {
+      "1" => {
+        print!("\x1B[2J\x1B[1;1H"); // clears terminal
+        println!("Mangadex");
+        print!("Enter the Manga ID: ");
+        std::io::stdout().flush().expect("failed to flush stdout");
+        let mut userInput = String::new();
+        let stdin = io::stdin();
+        stdin.read_line(&mut userInput).expect("Could not read line");
+        mangadex::mangadex(userInput);
+        println!("Download completed!\n");
+      },
+      "2" => println!("TODO"),
+      "quit" => break,
+      _ => println!("Invalid option"),
+    }
+  }
 }
 
 /*
