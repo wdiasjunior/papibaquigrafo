@@ -44,7 +44,10 @@ fn main() {
     - eye candy -> papibaquigrafo ascii logo and colors?
     - input -> select mangadex or tcbScans
       - mangadex -> user enters manga id (implement search function in the future?)
+        - 4komas/single page should download every chapter into the same folder
       - tcbScans -> user selects which manga to download
+        - https://github.com/manga-download/hakuneko/blob/dd59107eb47e5c0b6a2a4211e231def4cd6ebde8/src/web/mjs/connectors/TCBScans.mjs
+        - https://onepiecechapters.com/mangas/5/one-piece
     - progress bar
     - chapter selection
     - implement tcbScans scraper
