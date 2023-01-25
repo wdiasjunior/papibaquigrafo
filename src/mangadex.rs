@@ -5,6 +5,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 
+use std::io::{self, Write};
+
 use indicatif::ProgressBar;
 
 //-------------------------------------------------------------------------------------------------
@@ -104,14 +106,24 @@ struct ChapterImages {
   data: Vec<String>,
 }
 
-fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
-  let mut i: usize = 0;
+fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _userInput: String) {
+  let mut userInputVec: Vec<_> = [].to_vec();
+  let progressBarLength;
+  if !_userInput.trim().eq("") {
+    let chapterSeletion = _userInput.trim().split(" ").map(|chapter| chapter.to_string());
+    userInputVec = chapterSeletion.collect();
+    progressBarLength = userInputVec.len();
+  } else {
+    progressBarLength = _mangaChapters.data.len();
+  }
 
-  println!("Downloading");
-  let progressBar = ProgressBar::new(_mangaChapters.data.len().try_into().unwrap());
+  println!("\nDownloading");
+  let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
   progressBar.inc(0);
 
-  loop {
+  let mut i: usize = 0;
+  let mut k: usize = 0;
+  'i: loop {
     let baseUrl = format!("https://api.mangadex.org/at-home/server/{}", _mangaChapters.data[i].id);
 
     let url = reqwest::Url::parse(&baseUrl).unwrap();
@@ -123,56 +135,89 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: MangaChapters) {
     let hash: String = mangaChapterImages.chapter.hash;
     let chapterImagesFileName: Vec<String> = mangaChapterImages.chapter.data;
 
-    let mut j: usize = 0;
-    loop {
-      let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
-      std::fs::create_dir_all(mangaTitleDirectory).unwrap();
-      let directory = match &_mangaChapters.data[i].attributes.title {
-        Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
-        None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
-      };
-      std::fs::create_dir_all(&directory).unwrap();
-      let fileExtension = if chapterImagesFileName[j].contains(".jpg") {
-          "jpg"
-        } else if chapterImagesFileName[j].contains(".jpeg") {
-          "jpeg"
-        } else {
-          "png"
+    if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter)) || _userInput.trim().eq("") {
+      let mut j: usize = 0;
+      'j: loop {
+        let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
+        std::fs::create_dir_all(mangaTitleDirectory).unwrap();
+        let directory = match &_mangaChapters.data[i].attributes.title {
+          Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
+          None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
         };
-      let fileName = if j + 1 < 10 {
-          format!("{}/00{}.{}", &directory, j + 1, fileExtension)
+        std::fs::create_dir_all(&directory).unwrap();
+        let fileExtension = if chapterImagesFileName[j].contains(".jpg") {
+            "jpg"
+          } else if chapterImagesFileName[j].contains(".jpeg") {
+            "jpeg"
+          } else {
+            "png"
+          };
+        let fileName = if j + 1 < 10 {
+            format!("{}/00{}.{}", &directory, j + 1, fileExtension)
+          } else {
+            format!("{}/0{}.{}", &directory, j + 1, fileExtension)
+          };
+        let mut file = std::fs::File::create(fileName).unwrap();
+
+        let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
+
+        let url = reqwest::Url::parse(&baseUrl).unwrap();
+
+        let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
+
+        if j < chapterImagesFileName.len() - 1 {
+          j += 1;
         } else {
-          format!("{}/0{}.{}", &directory, j + 1, fileExtension)
-        };
-      let mut file = std::fs::File::create(fileName).unwrap();
-
-      let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
-
-      let url = reqwest::Url::parse(&baseUrl).unwrap();
-
-      let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
-
-      if j < chapterImagesFileName.len() - 1 {
-        j += 1;
+          break 'j;
+        }
+      }
+      if k < progressBarLength - 1 {
+        k += 1;
+        progressBar.inc(1);
       } else {
-        break;
+        progressBar.finish_with_message("done");
+        break 'i;
       }
     }
-
-    if i < _mangaChapters.data.len() - 1 {
-      i += 1;
-      progressBar.inc(1);
-    } else {
-      progressBar.finish_with_message("done");
-      break;
-    }
+    i += 1;
   }
 }
 
 pub fn mangadex(_mangaId: String) {
-  print!("{}", _mangaId);
   let mangaInfo = getManga(_mangaId);
   let mangaChapters = getMangaChapters(&mangaInfo);
   let mangaTitle = mangaInfo.data.attributes.title.en;
-  getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
+  // getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
+
+  let mut arr: Vec<_> = Vec::<_>::new();
+  print!("available chapters:\n");
+  for chapter in mangaChapters.data.iter() {
+    // print!("{}\n", chapter.attributes.chapter);
+    arr.push(chapter.attributes.chapter.parse::<f32>().unwrap());
+  }
+  // arr.sort();
+  arr.sort_by(|a, b| a.partial_cmp(b).unwrap()); // this is fucking ridiculous, Rust. just sort the goddamn float vector by default.
+  for i in arr.iter() {
+    print!("{}\n", i);
+  }
+
+  print!("\nEnter the chapters you want to download\n");
+  print!("Options: 'all', 'chapter numbers separated by spaces', 'quit'\n");
+  loop {
+    print!("-> ");
+    std::io::stdout().flush().expect("failed to flush stdout");
+
+    let mut userInput = String::new();
+    let stdin = io::stdin();
+    stdin.read_line(&mut userInput).expect("Could not read line");
+
+    match userInput.trim() {
+      "all" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string()),
+      "quit" => break,
+      _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput), // println!("userInput {}", userInput),
+    }
+    println!("\nDownload completed!\n");
+    break;
+  }
 }
+// 192aa767-2479-42c1-9780-8d65a2efd36a  // Gachiakuta id for testing

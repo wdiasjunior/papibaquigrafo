@@ -2,7 +2,8 @@
 
 mod mangadex;
 
-use std::io::{self, BufRead, Write};
+// use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 
 fn main() {
   // mangaId -> "d09c8abd-24ec-41de-ac8b-b6381a2f3a63"
@@ -28,7 +29,7 @@ fn main() {
         let stdin = io::stdin();
         stdin.read_line(&mut userInput).expect("Could not read line");
         mangadex::mangadex(userInput);
-        println!("Download completed!\n");
+        break;
       },
       "2" => println!("TODO"),
       "quit" => break,
