@@ -37,7 +37,7 @@ struct Title {
 }
 
 fn getManga(_mangaId: String) -> MangaData {
-  // TODO get manga id from user input
+
   let baseUrl = format!("https://api.mangadex.org/manga/{}", _mangaId);
   let url = reqwest::Url::parse(&baseUrl).unwrap();
 
