@@ -121,6 +121,9 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
   let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
   progressBar.inc(0);
 
+  let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
+  std::fs::create_dir_all(mangaTitleDirectory).unwrap();
+
   let mut i: usize = 0;
   let mut k: usize = 0;
   'i: loop {
@@ -136,15 +139,13 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
     let chapterImagesFileName: Vec<String> = mangaChapterImages.chapter.data;
 
     if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter)) || _userInput.trim().eq("") {
+      let directory = match &_mangaChapters.data[i].attributes.title {
+        Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
+        None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
+      };
+      std::fs::create_dir_all(&directory).unwrap();
       let mut j: usize = 0;
       'j: loop {
-        let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
-        std::fs::create_dir_all(mangaTitleDirectory).unwrap();
-        let directory = match &_mangaChapters.data[i].attributes.title {
-          Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
-          None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
-        };
-        std::fs::create_dir_all(&directory).unwrap();
         let fileExtension = if chapterImagesFileName[j].contains(".jpg") {
             "jpg"
           } else if chapterImagesFileName[j].contains(".jpeg") {

@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_json::Value as JsonValue;
 
 // use std::io::{self, Write};
+// use std::{thread, time};
 use std::collections::HashMap;
 
 // use indicatif::ProgressBar;
@@ -67,9 +68,14 @@ fn getManga(_gistURL: String) {
   for chapter in mangaData.chapters.values() {
     for i in chapter.chapter.values() { // get chapter object
       // println!("title = {:?}\n", i.title); // get chapter title
+
+
+
       for j in i.groups.values() { // get group key
         for k in j.group.values() { // array of links for images
           // println!("groups = {:?}\n\n", k);
+          // println!("chapter number = {:?}\n\n", &i);
+          // mangaChapters.push(ChapterParsed { title: &i.title, chapterNumber: &i.key(), chapterImages: k.to_vec() });
           mangaChapters.push(ChapterParsed { title: &i.title, chapterImages: k.to_vec() });
         }
       }
@@ -77,12 +83,51 @@ fn getManga(_gistURL: String) {
   }
 
   // return mangaChapters;
-  getMangaChapterImages(mangaChapters);
+  getMangaChapterImages(mangaData.title, mangaChapters);
 }
 
-fn getMangaChapterImages(_mangaChapters: Vec<ChapterParsed>) {
+fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: Vec<ChapterParsed>) {
+  let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
+  std::fs::create_dir_all(mangaTitleDirectory).unwrap();
+
   for chapter in _mangaChapters {
-    println!("_mangaChapters = {:?}\n", chapter.title);
+    let directory = format!("downloads/{}/{}/", _mangaTitle, chapter.title);
+    std::fs::create_dir_all(&directory).unwrap();
+
+    for (i, page) in chapter.chapterImages.iter().enumerate() {
+      let fileExtension = if page.contains(".jpg") {
+          "jpg"
+        } else if page.contains(".jpeg") {
+          "jpeg"
+        } else {
+          "png"
+        };
+      let fileName = if i + 1 < 10 {
+          format!("{}/00{}.{}", &directory, i + 1, fileExtension)
+        } else {
+          format!("{}/0{}.{}", &directory, i + 1, fileExtension)
+        };
+      let mut file = std::fs::File::create(fileName).unwrap();
+
+      let url = reqwest::Url::parse(&page.to_string()).unwrap();
+
+      // let ten_millis = time::Duration::from_millis(2000);
+      // thread::sleep(ten_millis);
+
+      // let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
+      let _mangaImage = reqwest::blocking::get(url);
+      if let Err(e) = _mangaImage {
+        // print!("erro {:?}\n\n", e);
+        if e.is_timeout() {
+          print!("timed out - chapter {} - page {}\n\n", chapter.title, i);
+          // let ten_millis = time::Duration::from_millis(2000);
+          // thread::sleep(ten_millis);
+          // reqwest::blocking::get(&url).unwrap().copy_to(&mut file).unwrap();
+        }
+      } else {
+        _mangaImage.unwrap().copy_to(&mut file).unwrap();
+      }
+    }
   }
 }
 
