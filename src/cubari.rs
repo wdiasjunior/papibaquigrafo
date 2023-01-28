@@ -6,12 +6,12 @@ use serde::Serialize;
 use serde_json::Value as JsonValue;
 
 // use std::io::{self, Write};
-// use std::{thread, time};
+use std::{thread, time};
 use std::collections::HashMap;
 
 // use indicatif::ProgressBar;
 
-// Currently only working for One Punch Man
+// Currently only working for github gists with one translation group
 
 //-------------------------------------------------------------------------------------------------
 
@@ -115,14 +115,24 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: Vec<ChapterParsed>
       // thread::sleep(ten_millis);
 
       // let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
-      let _mangaImage = reqwest::blocking::get(url);
+      let _mangaImage = reqwest::blocking::get(url.clone());
       if let Err(e) = _mangaImage {
         // print!("erro {:?}\n\n", e);
         if e.is_timeout() {
-          print!("timed out - chapter {} - page {}\n\n", chapter.title, i);
-          // let ten_millis = time::Duration::from_millis(2000);
-          // thread::sleep(ten_millis);
-          // reqwest::blocking::get(&url).unwrap().copy_to(&mut file).unwrap();
+          print!("timed out - chapter {} - page {}\n", chapter.title, i + 1);
+          loop {
+            thread::sleep(time::Duration::from_millis(15000));
+            print!("retrying\n\n");
+            let _mangaImage = reqwest::blocking::get(url.clone());
+            if let Err(e) = _mangaImage {
+              if e.is_timeout() {
+                print!("timed out - chapter {} - page {}\n", chapter.title, i + 1);
+              }
+            } else {
+              _mangaImage.unwrap().copy_to(&mut file).unwrap();
+              break;
+            }
+          }
         }
       } else {
         _mangaImage.unwrap().copy_to(&mut file).unwrap();
