@@ -12,6 +12,8 @@ use std::collections::HashMap;
 // use indicatif::ProgressBar;
 
 // Currently only working for github gists with one translation group
+// Do not use this. links for images hosted on discord's cdn timeout way too often and it takes so
+// much time to download even a single chapter using this.
 
 //-------------------------------------------------------------------------------------------------
 
@@ -115,14 +117,15 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: Vec<ChapterParsed>
       // thread::sleep(ten_millis);
 
       // let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
+      thread::sleep(time::Duration::from_millis(1000));
       let _mangaImage = reqwest::blocking::get(url.clone());
       if let Err(e) = _mangaImage {
         // print!("erro {:?}\n\n", e);
         if e.is_timeout() {
           print!("timed out - chapter {} - page {}\n", chapter.title, i + 1);
           loop {
-            thread::sleep(time::Duration::from_millis(15000));
             print!("retrying\n\n");
+            thread::sleep(time::Duration::from_millis(15000));
             let _mangaImage = reqwest::blocking::get(url.clone());
             if let Err(e) = _mangaImage {
               if e.is_timeout() {

@@ -39,14 +39,13 @@ fn main() {
       "3" => {
         print!("\x1B[2J\x1B[1;1H"); // clears terminal
         println!("Cubari");
-        // print!("Enter the gist link: ");
-        // std::io::stdout().flush().expect("failed to flush stdout");
-        // let mut userInput = String::new();
-        // let stdin = io::stdin();
-        // stdin.read_line(&mut userInput).expect("Could not read line");
-
+        print!("Enter the gist link: ");
+        std::io::stdout().flush().expect("failed to flush stdout");
+        let mut userInput = String::new();
+        let stdin = io::stdin();
+        stdin.read_line(&mut userInput).expect("Could not read line");
         // one punch man gist link
-        let userInput = "https://gist.githubusercontent.com/funkyhippo/1d40bd5dae11e03a6af20e5a9a030d81/raw/opm.json".to_string();
+        // let userInput = "https://gist.githubusercontent.com/funkyhippo/1d40bd5dae11e03a6af20e5a9a030d81/raw/opm.json".to_string();
         cubari::cubari(userInput);
         break;
       },
