@@ -106,7 +106,7 @@ struct ChapterImages {
   data: Vec<String>,
 }
 
-fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _userInput: String) {
+fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _userInput: String, _singleFolder: bool) {
   let mut userInputVec: Vec<_> = [].to_vec();
   let progressBarLength;
   if !_userInput.trim().eq("") {
@@ -139,9 +139,13 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
     let chapterImagesFileName: Vec<String> = mangaChapterImages.chapter.data;
 
     if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter)) || _userInput.trim().eq("") {
-      let directory = match &_mangaChapters.data[i].attributes.title {
-        Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
-        None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
+      let directory = if _singleFolder {
+        format!("downloads/{}/", _mangaTitle)
+      } else {
+        match &_mangaChapters.data[i].attributes.title {
+          Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
+          None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
+        }
       };
       std::fs::create_dir_all(&directory).unwrap();
       let mut j: usize = 0;
@@ -153,11 +157,15 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           } else {
             "png"
           };
-        let fileName = if j + 1 < 10 {
+        let fileName = if _singleFolder {
+          format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter, fileExtension)
+        } else {
+          if j + 1 < 10 {
             format!("{}/00{}.{}", &directory, j + 1, fileExtension)
           } else {
             format!("{}/0{}.{}", &directory, j + 1, fileExtension)
-          };
+          }
+        };
         let mut file = std::fs::File::create(fileName).unwrap();
 
         let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
@@ -203,7 +211,7 @@ pub fn mangadex(_mangaId: String) {
   }
 
   print!("\nEnter the chapters you want to download\n");
-  print!("Options: 'all', 'chapter numbers separated by spaces', 'quit'\n");
+  print!("Options: 'all', 'all-single-folder', 'chapter numbers separated by spaces', 'quit'\n");
   loop {
     print!("-> ");
     std::io::stdout().flush().expect("failed to flush stdout");
@@ -213,12 +221,14 @@ pub fn mangadex(_mangaId: String) {
     stdin.read_line(&mut userInput).expect("Could not read line");
 
     match userInput.trim() {
-      "all" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string()),
+      "all" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), false),
+      "all-single-folder" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), true),
       "quit" => break,
-      _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput), // println!("userInput {}", userInput),
+      _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput, false), // println!("userInput {}", userInput),
     }
     println!("\nDownload completed!\n");
     break;
   }
 }
 // 192aa767-2479-42c1-9780-8d65a2efd36a  // Gachiakuta id for testing
+// 76ee7069-23b4-493c-bc44-34ccbf3051a8  // Tomo-chan id for testing
