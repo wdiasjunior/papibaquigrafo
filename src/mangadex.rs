@@ -76,15 +76,25 @@ struct ChapterAttributes {
 fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
   // println!("_mangaInfo.data.id = {:?}", _mangaInfo.data.id);
 
-  let queryLimit: i32 = 500; // the limit is 500 - if manga has more than 500 chapters use the offset parameter
+  let queryLimit: i32 = 500;
+  let mut offset: i32 = 0;
   let selectedLanguage: String = "en".to_string();
-  let baseUrl = format!("https://api.mangadex.org/manga/{}/feed?includeFuturePublishAt=0&limit={}&translatedLanguage[]={}", _mangaInfo.data.id, queryLimit, selectedLanguage);
+  let baseUrl = format!("https://api.mangadex.org/manga/{}/feed?includeFuturePublishAt=0&limit={}&offset={}&translatedLanguage[]={}", _mangaInfo.data.id, queryLimit, offset, selectedLanguage);
 
   let url = reqwest::Url::parse(&baseUrl).unwrap();
 
   let json: JsonValue = reqwest::blocking::get(url).expect("bad request").json().expect("error parsing json");
 
-  let mangaChapters: MangaChapters = serde_json::from_str(&json.to_string()).unwrap();
+  let mut mangaChapters: MangaChapters = serde_json::from_str(&json.to_string()).unwrap();
+
+  if mangaChapters.total > queryLimit {
+    offset = 500;
+    let baseUrl = format!("https://api.mangadex.org/manga/{}/feed?includeFuturePublishAt=0&limit={}&offset={}&translatedLanguage[]={}", _mangaInfo.data.id, queryLimit, offset, selectedLanguage);
+    let url = reqwest::Url::parse(&baseUrl).unwrap();
+    let json: JsonValue = reqwest::blocking::get(url).expect("bad request").json().expect("error parsing json");
+    let parsed: MangaChapters = serde_json::from_str(&json.to_string()).unwrap();
+    mangaChapters.data.extend(parsed.data.into_iter());
+  }
 
   // println!("mangaChapters = {:?}", mangaChapters);
   return mangaChapters;
@@ -108,14 +118,13 @@ struct ChapterImages {
 
 fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _userInput: String, _singleFolder: bool) {
   let mut userInputVec: Vec<_> = [].to_vec();
-  let progressBarLength;
-  if !_userInput.trim().eq("") {
+  let progressBarLength = if !_userInput.trim().eq("") {
     let chapterSeletion = _userInput.trim().split(" ").map(|chapter| chapter.to_string());
     userInputVec = chapterSeletion.collect();
-    progressBarLength = userInputVec.len();
+    userInputVec.len()
   } else {
-    progressBarLength = _mangaChapters.data.len();
-  }
+    _mangaChapters.data.len()
+  };
 
   println!("\nDownloading");
   let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
@@ -139,26 +148,68 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
     let chapterImagesFileName: Vec<String> = mangaChapterImages.chapter.data;
 
     if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter)) || _userInput.trim().eq("") {
-      let directory = if _singleFolder {
-        format!("downloads/{}/", _mangaTitle)
+      let directory = if _singleFolder && chapterImagesFileName.len() == 1 {
+        if chapterImagesFileName.len() == 1 {
+          format!("downloads/{}/", _mangaTitle)
+        } else {
+          format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string())
+        }
       } else {
         match &_mangaChapters.data[i].attributes.title {
           Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
           None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
         }
       };
-      std::fs::create_dir_all(&directory).unwrap();
+      let mut dirVersion = 2;
+      // let mut shouldHaveVersion = false;
+      // let chapterVersion: String = &directory.push_str(format!(" - V{}", dirVersion).to_string()).clone().to_string();
+      // let mut stringDir = String::new();
+      let mut stringDir = "".to_string();
+      stringDir.push_str(&directory);
+      stringDir.push_str(" - V");
+      let test = &mut stringDir.clone();
+///////////////////////////////////////////////////////////////////////////////////////////////////
+      loop { // change this to just increment a number by the side of the chapter number
+        if std::fs::metadata(&directory).is_ok() && chapterImagesFileName.len() > 1 {
+          // println!("inside loop if");
+          // shouldHaveVersion = true;
+          // println!("v2 dir");
+          // let mut stringDir = String::new();
+          // stringDir.push_str(&directory);
+          // stringDir.push_str(" - V");
+          stringDir.push_str(&dirVersion.to_string());
+          if !std::fs::metadata(&stringDir).is_ok() {
+            // println!("{}", &stringDir);
+            std::fs::create_dir_all(&test).unwrap();
+            // shouldHaveVersion = false;
+            // dirVersion = 1;
+            break;
+          } else {
+            dirVersion += 1;
+          }
+        } else {
+          // println!("inside loop else");
+          std::fs::create_dir_all(&directory).unwrap();
+          break;
+        }
+      }
+///////////////////////////////////////////////////////////////////////////////////////////////////
       let mut j: usize = 0;
       'j: loop {
         let fileExtension = if chapterImagesFileName[j].contains(".jpg") {
-            "jpg"
-          } else if chapterImagesFileName[j].contains(".jpeg") {
-            "jpeg"
-          } else {
-            "png"
-          };
+          "jpg"
+        } else if chapterImagesFileName[j].contains(".jpeg") {
+          "jpeg"
+        } else {
+          "png"
+        };
+
         let fileName = if _singleFolder {
-          format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter, fileExtension)
+          if chapterImagesFileName.len() == 1 {
+            format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter, fileExtension)
+          } else {
+            format!("{}/{}.{}", &directory, j + 1, fileExtension) // change this to just increment a number by the side of the chapter number
+          }
         } else {
           if j + 1 < 10 {
             format!("{}/00{}.{}", &directory, j + 1, fileExtension)
@@ -166,12 +217,10 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
             format!("{}/0{}.{}", &directory, j + 1, fileExtension)
           }
         };
+
         let mut file = std::fs::File::create(fileName).unwrap();
-
         let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
-
         let url = reqwest::Url::parse(&baseUrl).unwrap();
-
         let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
 
         if j < chapterImagesFileName.len() - 1 {
@@ -195,6 +244,7 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
 pub fn mangadex(_mangaId: String) {
   let mangaInfo = getManga(_mangaId);
   let mangaChapters = getMangaChapters(&mangaInfo);
+  // print!("mangaChapters length {}", mangaChapters.data.len());
   let mangaTitle = mangaInfo.data.attributes.title.en;
   // getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
 
@@ -211,7 +261,7 @@ pub fn mangadex(_mangaId: String) {
   }
 
   print!("\nEnter the chapters you want to download\n");
-  print!("Options: 'all', 'all-single-folder', 'chapter numbers separated by spaces', 'quit'\n");
+  print!("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'quit'\n");
   loop {
     print!("-> ");
     std::io::stdout().flush().expect("failed to flush stdout");
@@ -222,7 +272,7 @@ pub fn mangadex(_mangaId: String) {
 
     match userInput.trim() {
       "all" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), false),
-      "all-single-folder" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), true),
+      "asf" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), true),
       "quit" => break,
       _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput, false), // println!("userInput {}", userInput),
     }
