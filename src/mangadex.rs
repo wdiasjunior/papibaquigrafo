@@ -69,7 +69,7 @@ struct ChapterData {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ChapterAttributes {
-  chapter: String,
+  chapter: Option<String>,
   title: Option<String>,
 }
 
@@ -147,17 +147,17 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
     let hash: String = mangaChapterImages.chapter.hash;
     let chapterImagesFileName: Vec<String> = mangaChapterImages.chapter.data;
 
-    if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter)) || _userInput.trim().eq("") {
+    if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string())) || _userInput.trim().eq("") {
       let directory = if _singleFolder && chapterImagesFileName.len() == 1 {
         if chapterImagesFileName.len() == 1 {
           format!("downloads/{}/", _mangaTitle)
         } else {
-          format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string())
+          format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string(), _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string())
         }
       } else {
         match &_mangaChapters.data[i].attributes.title {
-          Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter, _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
-          None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter),
+          Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string(), _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
+          None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string()),
         }
       };
       let mut dirVersion = 2;
@@ -206,7 +206,7 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
 
         let fileName = if _singleFolder {
           if chapterImagesFileName.len() == 1 {
-            format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter, fileExtension)
+            format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect title not to be null").to_string(), fileExtension)
           } else {
             format!("{}/{}.{}", &directory, j + 1, fileExtension) // change this to just increment a number by the side of the chapter number
           }
@@ -252,7 +252,9 @@ pub fn mangadex(_mangaId: String) {
   print!("available chapters:\n");
   for chapter in mangaChapters.data.iter() {
     // print!("{}\n", chapter.attributes.chapter);
-    arr.push(chapter.attributes.chapter.parse::<f32>().unwrap());
+    if chapter.attributes.chapter.as_ref().is_some() {
+      arr.push(chapter.attributes.chapter.as_ref().expect("expect title not to be null").to_string());
+    }
   }
   // arr.sort();
   arr.sort_by(|a, b| a.partial_cmp(b).unwrap()); // this is fucking ridiculous, Rust. just sort the goddamn float vector by default.
