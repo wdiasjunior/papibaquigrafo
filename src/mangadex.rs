@@ -147,18 +147,20 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
     let hash: String = mangaChapterImages.chapter.hash;
     let chapterImagesFileName: Vec<String> = mangaChapterImages.chapter.data;
 
-    if userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string())) || _userInput.trim().eq("") {
+    if _userInput.trim().eq("oneshot") || userInputVec.iter().any(|k| k.eq(&_mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string())) || _userInput.trim().eq("") {
       let directory = if _singleFolder && chapterImagesFileName.len() == 1 {
         if chapterImagesFileName.len() == 1 {
           format!("downloads/{}/", _mangaTitle)
         } else {
           format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string(), _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string())
         }
+      } else if _userInput.trim().eq("oneshot") {
+        format!("downloads/{}/Oneshot/", _mangaTitle)
       } else {
         match &_mangaChapters.data[i].attributes.title {
           Some(_) => format!("downloads/{}/Ch.{} - {}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string(), _mangaChapters.data[i].attributes.title.as_ref().expect("expect title not to be null").to_string()),
-          // None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string()),
-          None => format!("downloads/{}/Ch.{}/", _mangaTitle, "null chapter"), // if this is null, it's probably a oneshot
+          None => format!("downloads/{}/Ch.{}/", _mangaTitle, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect chapter not to be null").to_string()),
+          // None => format!("downloads/{}/Ch.{}/", _mangaTitle, "null chapter"), // if this is null, it's probably a oneshot
         }
       };
       let mut dirVersion = 2;
@@ -264,7 +266,7 @@ pub fn mangadex(_mangaId: String) {
   }
 
   print!("\nEnter the chapters you want to download\n");
-  print!("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'quit'\n");
+  print!("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'oneshot', 'quit'\n");
   loop {
     print!("-> ");
     std::io::stdout().flush().expect("failed to flush stdout");
@@ -276,6 +278,7 @@ pub fn mangadex(_mangaId: String) {
     match userInput.trim() {
       "all" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), false),
       "asf" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), true),
+      "oneshot" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "oneshot".to_string(), true),
       "quit" => break,
       _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput, false), // println!("userInput {}", userInput),
     }
