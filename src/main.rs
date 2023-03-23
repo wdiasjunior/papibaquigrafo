@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 mod mangadex;
+mod tcbscans;
 mod cubari;
 
 // use std::io::{self, BufRead, Write};
@@ -33,7 +34,9 @@ fn main() {
         break;
       },
       "2" => {
-        println!("TODO - TCB Scans");
+        print!("\x1B[2J\x1B[1;1H"); // clears terminal
+        println!("TCB Scans");
+        tcbscans::tcbscans();
         break;
       },
       "3" => {
