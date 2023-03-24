@@ -102,7 +102,7 @@ pub fn tcbscans() {
   stdin.read_line(&mut userInput).expect("Could not read line");
 
   let mangaIndex: usize = userInput.trim().parse().unwrap();
-  let _mangaTitle = _mangaList[index].clone();
+  let _mangaTitle = _mangaList[mangaIndex].clone();
   let _chapterList = getChapterList(_mangaList[mangaIndex].clone());
 
   print!("initial chapter -> ");
@@ -123,10 +123,10 @@ pub fn tcbscans() {
 
   // print!("\x1B[2J\x1B[1;1H"); // clears terminal
   for (i, chapter) in _chapterList.iter().enumerate() {
-  for chapter in _chapterList {
-    if i >= chapterIndex && i <= chapterIndexLimit {
+  // for chapter in _chapterList {
+    if i >= chapterIndex - 1 && i <= chapterIndexLimit - 1 {
       // print!("{}\n", chapter);
-      getChapterImages(_mangaTitle.clone(), chapter);
+      getChapterImages(_mangaTitle.clone(), chapter.to_string());
       // getChapterImages(_mangaTitle, _chapterList[8].clone());
     }
   }
