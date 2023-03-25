@@ -3,6 +3,7 @@
 mod mangadex;
 mod tcbscans;
 mod cubari;
+mod tonarinoyj;
 
 // use std::io::{self, BufRead, Write};
 use std::io::{self, Write};
