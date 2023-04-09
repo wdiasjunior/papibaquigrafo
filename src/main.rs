@@ -4,6 +4,7 @@ mod mangadex;
 mod tcbscans;
 mod cubari;
 mod tonarinoyj;
+mod comicojp;
 
 // use std::io::{self, BufRead, Write};
 use std::io::{self, Write};
@@ -13,7 +14,7 @@ fn main() {
   // let mangaId = "d09c8abd-24ec-41de-ac8b-b6381a2f3a63".to_string();
   // mangadex::mangadex(mangaId);
 
-  print!("Choose an option: \n1: Mangadex \n2: TCB Scans \n3: tonarinoyj.jp (One Punch Man) \n4: Cubari\n");
+  print!("Choose an option: \n1: Mangadex \n2: TCB Scans \n3: tonarinoyj.jp (One Punch Man) \n4: Comico.jp \n5: Cubari\n");
   loop {
     print!("-> ");
     std::io::stdout().flush().expect("failed to flush stdout");
@@ -47,6 +48,12 @@ fn main() {
         break;
       },
       "4" => {
+        print!("\x1B[2J\x1B[1;1H"); // clears terminal
+        println!("comico.jp");
+        comicojp::comicojp();
+        break;
+      },
+      "5" => {
         print!("\x1B[2J\x1B[1;1H"); // clears terminal
         println!("Cubari");
         print!("Enter the gist link: ");
