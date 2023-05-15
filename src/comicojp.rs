@@ -44,5 +44,6 @@ print!("\n{}\n", _mangaImage);
 }
 
 pub fn comicojp() {
+  print!("function disabled\n");
   // getChapterImages();
 }

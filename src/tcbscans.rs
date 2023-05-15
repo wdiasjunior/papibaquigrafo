@@ -132,3 +132,6 @@ pub fn tcbscans() {
   }
   println!("\nDownload completed!\n");
 }
+
+// TODO
+// - make it work for attack on titan

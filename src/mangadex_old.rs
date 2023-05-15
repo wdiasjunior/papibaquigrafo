@@ -287,14 +287,5 @@ pub fn mangadex(_mangaId: String) {
   }
 }
 
-// TODO
-// directory version
-// oneshot
-// 'asf' (tomo-chan alike. single page per chapter, so it saves everything in one directory)
-// program should not panic
-// fix chapter list ordering
-// per chapter download bar of chapter images below chapter count download bar
-
-// 192aa767-2479-42c1-9780-8d65a2efd36a  // Gachiakuta
-// 76ee7069-23b4-493c-bc44-34ccbf3051a8  // Tomo-chan
-// eb0494de-3b43-4d52-a808-63429c4a4239  // ako to bambi
+// 192aa767-2479-42c1-9780-8d65a2efd36a  // Gachiakuta id for testing
+// 76ee7069-23b4-493c-bc44-34ccbf3051a8  // Tomo-chan id for testing
