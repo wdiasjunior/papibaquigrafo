@@ -1,5 +1,5 @@
-#[allow(dead_code)]
 #![allow(non_snake_case)]
+#[allow(dead_code)]
 
 mod mangadex;
 mod tcbscans;
@@ -28,11 +28,17 @@ fn main() {
       "1" => {
         print!("\x1B[2J\x1B[1;1H"); // clears terminal
         println!("Mangadex");
-        print!("Enter the Manga ID: ");
-        std::io::stdout().flush().expect("failed to flush stdout");
-        let mut userInput = String::new();
-        let stdin = io::stdin();
-        stdin.read_line(&mut userInput).expect("Could not read line");
+        // print!("Enter the Manga ID: ");
+        // std::io::stdout().flush().expect("failed to flush stdout");
+        // let mut userInput = String::new();
+        // let stdin = io::stdin();
+        // stdin.read_line(&mut userInput).expect("Could not read line");
+
+        // let userInput = "6a1d1cb1-ecd5-40d9-89ff-9d88e40b136b".to_string(); // tokyo ghoul
+        // let userInput = "192aa767-2479-42c1-9780-8d65a2efd36a".to_string(); // Gachiakuta
+        // let userInput = "eb0494de-3b43-4d52-a808-63429c4a4239".to_string(); // ako to bambi
+        let userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8".to_string(); // tomo chan // asf
+        // let userInput = "ead4b388-cf7f-448c-aec6-bf733968162c".to_string(); // oneshot
         mangadex::mangadex(userInput);
         break;
       },

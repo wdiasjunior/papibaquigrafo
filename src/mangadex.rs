@@ -164,34 +164,23 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
         }
       };
       let mut dirVersion = 2;
-      // let mut shouldHaveVersion = false;
-      // let chapterVersion: String = &directory.push_str(format!(" - V{}", dirVersion).to_string()).clone().to_string();
-      // let mut stringDir = String::new();
       let mut stringDir = "".to_string();
       stringDir.push_str(&directory);
+      stringDir.pop();
       stringDir.push_str(" - V");
-      let test = &mut stringDir.clone();
-///////////////////////////////////////////////////////////////////////////////////////////////////
-      loop { // change this to just increment a number by the side of the chapter number
-        if std::fs::metadata(&directory).is_ok() && chapterImagesFileName.len() > 1 {
-          // println!("inside loop if");
-          // shouldHaveVersion = true;
-          // println!("v2 dir");
-          // let mut stringDir = String::new();
-          // stringDir.push_str(&directory);
-          // stringDir.push_str(" - V");
+      loop {
+        if _singleFolder {
+          break;
+        }
+        if std::fs::metadata(&directory).is_ok() {
           stringDir.push_str(&dirVersion.to_string());
           if !std::fs::metadata(&stringDir).is_ok() {
-            // println!("{}", &stringDir);
-            std::fs::create_dir_all(&test).unwrap();
-            // shouldHaveVersion = false;
-            // dirVersion = 1;
+            std::fs::create_dir_all(&stringDir).unwrap();
             break;
           } else {
             dirVersion += 1;
           }
         } else {
-          // println!("inside loop else");
           std::fs::create_dir_all(&directory).unwrap();
           break;
         }
@@ -211,7 +200,8 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           if chapterImagesFileName.len() == 1 {
             format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect title not to be null").to_string(), fileExtension)
           } else {
-            format!("{}/{}.{}", &directory, j + 1, fileExtension) // change this to just increment a number by the side of the chapter number
+            // format!("{}/{}.{}", &directory, j + 1, fileExtension) // change this to just increment a number by the side of the chapter number
+            format!("{}/{} - {}.{}", &directory, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect title not to be null").to_string(), j + 1, fileExtension)
           }
         } else {
           if j + 1 < 10 {
@@ -221,7 +211,34 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           }
         };
 
-        let mut file = std::fs::File::create(fileName).unwrap();
+        // let mut file = if _singleFolder && std::path::Path::new(&fileName).exists() {
+        //   let mut chapterVersion = 2;
+        //   let mut stringFile = "".to_string();
+        //   stringFile.push_str(&directory);
+        //   let charIndex = stringFile.chars().position(|c| c == '.').unwrap();
+        //   stringFile[charIndex].push_str(" - V");
+        //   loop {
+        //     if _singleFolder {
+        //       break;
+        //     }
+        //     if std::path::Path::new(&fileName).exists() {
+        //       stringFile.push_str(&chapterVersion.to_string());
+        //       if !std::path::Path::new(&stringFile).exists() {
+        //         std::fs::File::create(stringFile)
+        //         break;
+        //       } else {
+        //         chapterVersion += 1;
+        //       }
+        //     } else {
+        //       // std::fs::create_dir_all(&directory).unwrap();
+        //       std::fs::File::create(fileName)
+        //       break;
+        //     }
+        //   }
+        // } else {
+        //   std::fs::File::create(fileName)
+        // };
+        let mut file = std::fs::File::create(fileName).unwrap(); // TODO - if file exists and _singleFolder, add a v2 at the end
         let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
         let url = reqwest::Url::parse(&baseUrl).unwrap();
         let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
@@ -232,6 +249,7 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           break 'j;
         }
       }
+      // std::thread::sleep(std::time::Duration::from_millis(1000)); // debugger for directory versions
       if k < progressBarLength - 1 {
         k += 1;
         progressBar.inc(1);
@@ -244,25 +262,37 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
   }
 }
 
+//-------------------------------------------------------------------------------------------------
+
 pub fn mangadex(_mangaId: String) {
   let mangaInfo = getManga(_mangaId);
+  if mangaInfo.result != "ok" {
+    print!("error fecthing manga. error: {}", mangaInfo.result);
+    return;
+  }
   let mangaChapters = getMangaChapters(&mangaInfo);
-  // print!("mangaChapters length {}", mangaChapters.data.len());
   let mangaTitle = mangaInfo.data.attributes.title.en;
-  // getMangaChapterImages(mangaTitle.to_string(), mangaChapters);
+  print!("{}\n", mangaTitle);
+  if mangaChapters.data.len() == 0 {
+    print!("No chapters available\n");
+    return;
+  }
+  print!("Number of chapters: {}\n\n", mangaChapters.data.len());
 
   let mut arr: Vec<_> = Vec::<_>::new();
   print!("available chapters:\n");
-  for chapter in mangaChapters.data.iter() {
-    // print!("{}\n", chapter.attributes.chapter);
-    if chapter.attributes.chapter.as_ref().is_some() {
-      arr.push(chapter.attributes.chapter.as_ref().expect("expect title not to be null").to_string());
+  if mangaChapters.data.len() == 1 && mangaChapters.data[0].attributes.chapter.as_ref().is_none() {
+    print!("Oneshot\n");
+  } else {
+    for chapter in mangaChapters.data.iter() {
+      if chapter.attributes.chapter.as_ref().is_some() {
+        arr.push(chapter.attributes.chapter.as_ref().expect("expect title not to be null").to_string().parse::<f32>().unwrap());
+      }
     }
-  }
-  // arr.sort();
-  arr.sort_by(|a, b| a.partial_cmp(b).unwrap()); // this is fucking ridiculous, Rust. just sort the goddamn float vector by default.
-  for i in arr.iter() {
-    print!("{}\n", i);
+    arr.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    for i in arr.iter() {
+      print!("{}\n", i);
+    }
   }
 
   print!("\nEnter the chapters you want to download\n");
@@ -280,7 +310,7 @@ pub fn mangadex(_mangaId: String) {
       "asf" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "".to_string(), true),
       "oneshot" => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, "oneshot".to_string(), true),
       "quit" => break,
-      _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput, false), // println!("userInput {}", userInput),
+      _ => getMangaChapterImages(mangaTitle.to_string(), &mangaChapters, userInput, false),
     }
     println!("\nDownload completed!\n");
     break;
@@ -298,3 +328,4 @@ pub fn mangadex(_mangaId: String) {
 // 192aa767-2479-42c1-9780-8d65a2efd36a  // Gachiakuta
 // 76ee7069-23b4-493c-bc44-34ccbf3051a8  // Tomo-chan
 // eb0494de-3b43-4d52-a808-63429c4a4239  // ako to bambi
+// ead4b388-cf7f-448c-aec6-bf733968162c  // Hanabi - oneshot
