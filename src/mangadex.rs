@@ -127,8 +127,8 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
   };
 
   println!("\nDownloading");
-  // let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
-  // progressBar.inc(0);
+  let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
+  progressBar.inc(0);
 
   let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
   std::fs::create_dir_all(mangaTitleDirectory).unwrap();
@@ -197,7 +197,7 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           "png"
         };
 
-        let fileName = if _singleFolder {
+        let mut fileName = if _singleFolder {
           if chapterImagesFileName.len() == 1 {
             format!("{}/{}.{}", &directory, _mangaChapters.data[i].attributes.chapter.as_ref().expect("expect title not to be null").to_string(), fileExtension)
           } else {
@@ -212,41 +212,35 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           }
         };
 
-        // // let mut file = if _singleFolder && std::path::Path::new(&fileName).exists() {
-        // if _singleFolder && std::path::Path::new(&fileName).exists() {
-        //   let mut chapterVersion = 2;
-        //   let mut stringFile = "".to_string();
-        //   stringFile.push_str(&fileName);
-        //   // let charIndex = stringFile.chars().position(|c| c == '.').unwrap();
-        //   stringFile.pop();
-        //   // stringFile[charIndex].push_str(" - V");
-        //   stringFile.push_str(" - V");
-        //   loop {
-        //     if _singleFolder {
-        //       break;
-        //     }
-        //     if std::path::Path::new(&fileName).exists() {
-        //       stringFile.push_str(&chapterVersion.to_string());
-        //       if !std::path::Path::new(&stringFile).exists() {
-        //         //std::fs::File::create(stringFile);
-        //         break;
-        //       } else {
-        //         chapterVersion += 1;
-        //       }
-        //     }// else {
-        //     //   // std::fs::create_dir_all(&fileName).unwrap();
-        //     //   std::fs::File::create(fileName.clone());
-        //     //   break;
-        //     // }
-        //   }
-        // }// else {
-        // //   std::fs::File::create(fileName.clone());
-        // // }
-        print!("fileName {}\n", fileName);
-        // let mut file = std::fs::File::create(fileName).unwrap(); // TODO - if file exists and _singleFolder, add a v2 at the end
-        // let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
-        // let url = reqwest::Url::parse(&baseUrl).unwrap();
-        // let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
+        if _singleFolder && std::path::Path::new(&fileName).exists() {
+          let mut chapterVersion = 2;
+          let mut stringFile = "".to_string();
+          stringFile.push_str(&fileName);
+          // let charIndex = stringFile.chars().position(|c| c == '.').unwrap();
+          let charIndex = stringFile.chars().count() - stringFile.chars().rev().position(|c| c == '.').unwrap() - 1;
+          // let charIndex = stringFile.rfind('.').unwrap() - 1;
+          loop {
+            if _singleFolder {
+              break;
+            }
+            let mut auxFileName = "".to_string();
+            auxFileName.push_str(&stringFile);
+            if std::path::Path::new(&auxFileName).exists() {
+              auxFileName.as_bytes()[charIndex - 1].to_string().push_str(&format!(" - V{}", chapterVersion).to_string());
+              if !std::path::Path::new(&auxFileName).exists() {
+                fileName = auxFileName;
+                break;
+              } else {
+                chapterVersion += 1;
+              }
+            }
+          }
+        }
+        // print!("fileName {}\n", fileName);
+        let mut file = std::fs::File::create(fileName).unwrap(); // TODO - if file exists and _singleFolder, add a v2 at the end
+        let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
+        let url = reqwest::Url::parse(&baseUrl).unwrap();
+        let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
 
         if j < chapterImagesFileName.len() - 1 {
           j += 1;
@@ -254,14 +248,14 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           break 'j;
         }
       }
-      std::thread::sleep(std::time::Duration::from_millis(1000)); // debugger for directory versions
-      // if k < progressBarLength - 1 {
-      //   k += 1;
-      //   progressBar.inc(1);
-      // } else {
-      //   progressBar.finish_with_message("done");
-      //   break 'i;
-      // }
+      // std::thread::sleep(std::time::Duration::from_millis(1000)); // debugger for directory versions
+      if k < progressBarLength - 1 {
+        k += 1;
+        progressBar.inc(1);
+      } else {
+        progressBar.finish_with_message("done");
+        break 'i;
+      }
     }
     i += 1;
   }
@@ -326,9 +320,6 @@ pub fn mangadex(_mangaId: String) {
 // directory version
 // oneshot
 // 'asf' (tomo-chan alike. single page per chapter, so it saves everything in one directory)
-// program should not panic
-// fix chapter list ordering
-// per chapter download bar of chapter images below chapter count download bar
 
 // 192aa767-2479-42c1-9780-8d65a2efd36a  // Gachiakuta
 // 76ee7069-23b4-493c-bc44-34ccbf3051a8  // Tomo-chan
