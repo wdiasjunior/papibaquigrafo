@@ -75,7 +75,7 @@ struct ChapterAttributes {
 
 fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
   // println!("_mangaInfo.data.id = {:?}", _mangaInfo.data.id);
-  std::thread::sleep(std::time::Duration::from_millis(3000)); // debugger for directory versions
+  // std::thread::sleep(std::time::Duration::from_millis(3000)); // debugger for directory versions
 
   let queryLimit: i32 = 500;
   let mut offset: i32 = 0;
@@ -89,7 +89,7 @@ fn getMangaChapters(_mangaInfo: &MangaData) -> MangaChapters {
   let mut mangaChapters: MangaChapters = serde_json::from_str(&json.to_string()).unwrap();
 
   if mangaChapters.total > queryLimit {
-    std::thread::sleep(std::time::Duration::from_millis(3000)); // debugger for directory versions
+    // std::thread::sleep(std::time::Duration::from_millis(3000)); // debugger for directory versions
     offset = 500;
     let baseUrl = format!("https://api.mangadex.org/manga/{}/feed?includeFuturePublishAt=0&limit={}&offset={}&translatedLanguage[]={}", _mangaInfo.data.id, queryLimit, offset, selectedLanguage);
     let url = reqwest::Url::parse(&baseUrl).unwrap();
@@ -129,8 +129,8 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
   };
 
   println!("\nDownloading");
-  // let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
-  // progressBar.inc(0);
+  let progressBar = ProgressBar::new(progressBarLength.try_into().unwrap());
+  progressBar.inc(0);
 
   let mangaTitleDirectory = format!("downloads/{}", _mangaTitle);
   std::fs::create_dir_all(mangaTitleDirectory).unwrap();
@@ -242,10 +242,10 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           }
         }
         print!("fileName {}\n", fileName);
-        // let mut file = std::fs::File::create(fileName).unwrap(); // TODO - if file exists and _singleFolder, add a v2 at the end
-        // let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
-        // let url = reqwest::Url::parse(&baseUrl).unwrap();
-        // let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
+        let mut file = std::fs::File::create(fileName).unwrap(); // TODO - if file exists and _singleFolder, add a v2 at the end
+        let baseUrl = format!("https://uploads.mangadex.org/data/{}/{}", hash, chapterImagesFileName[j]);
+        let url = reqwest::Url::parse(&baseUrl).unwrap();
+        let _mangaImage = reqwest::blocking::get(url).unwrap().copy_to(&mut file).unwrap();
 
         if j < chapterImagesFileName.len() - 1 {
           j += 1;
@@ -253,14 +253,14 @@ fn getMangaChapterImages(_mangaTitle: String, _mangaChapters: &MangaChapters, _u
           break 'j;
         }
       }
-      std::thread::sleep(std::time::Duration::from_millis(2000)); // debugger for directory versions
-      // if k < progressBarLength - 1 {
-      //   k += 1;
-      //   progressBar.inc(1);
-      // } else {
-      //   progressBar.finish_with_message("done");
-      //   break 'i;
-      // }
+      // std::thread::sleep(std::time::Duration::from_millis(2000)); // debugger for directory versions
+      if k < progressBarLength - 1 {
+        k += 1;
+        progressBar.inc(1);
+      } else {
+        progressBar.finish_with_message("done");
+        break 'i;
+      }
     }
     i += 1;
   }

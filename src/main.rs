@@ -36,8 +36,9 @@ fn main() {
 
         // let userInput = "6a1d1cb1-ecd5-40d9-89ff-9d88e40b136b".to_string(); // tokyo ghoul
         // let userInput = "192aa767-2479-42c1-9780-8d65a2efd36a".to_string(); // Gachiakuta
-        let userInput = "eb0494de-3b43-4d52-a808-63429c4a4239".to_string(); // ako to bambi
+        // let userInput = "eb0494de-3b43-4d52-a808-63429c4a4239".to_string(); // ako to bambi
         // let userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8".to_string(); // tomo chan // asf
+        let userInput = "b0b721ff-c388-4486-aa0f-c2b0bb321512".to_string(); // sousou no frieren
         // let userInput = "ead4b388-cf7f-448c-aec6-bf733968162c".to_string(); // oneshot
         // let userInput = "1c5a193e-973e-4ddd-90fc-4e09e5da4c18".to_string(); // Kuchi ga Saketemo Kimi ni wa (2018)
         mangadex::mangadex(userInput);
