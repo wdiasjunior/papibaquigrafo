@@ -54,15 +54,27 @@ fn getChapterImages(_mangaTitle: String, _mangaChapter: String) {
   let mangaTitle: Vec<String> =  Regex::new(r#"[^/]*$"#).unwrap().find_iter(&_mangaTitle).map(|e| e.as_str().to_string().replace("-", " ")).collect();
   // let mangaChapter: Vec<String> = Regex::new(r#"/chapters/\d+/one-piece-chapter-([0-9.]+|-new)"#).unwrap().find_iter(&_mangaChapter).map(|e| e.as_str().to_string()).collect();
   // Regex::new(r#"\d+$"#)
-  let re = Regex::new(r#"/chapters/\d+/one-piece-chapter-([0-9.]+|-new)"#).unwrap();
-  let mut mangaChapter = "";
+  let re = if _mangaChapter.contains("one-piece") {
+    Regex::new(r#"/chapters/\d+/one-piece-chapter-([0-9.]+|-new)"#).unwrap()
+  } else {
+    Regex::new(r#"/chapters/\d+/attack-on-titan-chapter-([0-9.]+|-new)"#).unwrap()
+  };
+
+  let mut mangaChapter: String = "".to_string();
   if let Some(captures) = re.captures(&_mangaChapter) {
-    mangaChapter = captures.get(1).unwrap().as_str();
-    // println!("{}", mangaChapter);
+    if captures.get(2).is_some() {
+      // let _auxString = captures.get(1).unwrap().as_str().to_owned();
+      // mangaChapter = _auxString.push_str(".".to_owned() + captures.get(2).unwrap().as_str());
+      mangaChapter = format!("{}.{}", captures.get(1).unwrap().to_owned().as_str(), captures.get(2).unwrap().to_owned().as_str());
+    } else {
+      mangaChapter = format!("{}", captures.get(1).unwrap().to_owned().as_str());
+    }
+
+    println!("{}", mangaChapter);
   }
 
   // print!("mangaTitle {}\n", mangaTitle[0]);
-  // print!("mangaChapter {}\n", mangaChapter);
+  print!("mangaChapter {}\n", mangaChapter);
 
   let directory = format!("downloads/{}/Ch.{}/", mangaTitle[0], mangaChapter);
   std::fs::create_dir_all(&directory).unwrap();
