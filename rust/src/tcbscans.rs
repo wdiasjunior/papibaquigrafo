@@ -74,7 +74,7 @@ fn getChapterImages(_mangaTitle: String, _mangaChapter: String) {
   }
 
   // print!("mangaTitle {}\n", mangaTitle[0]);
-  print!("mangaChapter {}\n", mangaChapter);
+  // print!("mangaChapter {}\n", mangaChapter);
 
   let directory = format!("downloads/{}/Ch.{}/", mangaTitle[0], mangaChapter);
   std::fs::create_dir_all(&directory).unwrap();

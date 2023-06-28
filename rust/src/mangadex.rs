@@ -37,6 +37,11 @@ struct Title {
 }
 
 fn getManga(_mangaId: String) -> MangaData {
+  // rewrite in Go
+  // final override fun headersBuilder() = Headers.Builder()
+  //       .add("Referer", "$baseUrl/")
+  //       .add("User-Agent", "Tachiyomi " + System.getProperty("http.agent"))
+  // https://dtantsur.github.io/rust-openstack/reqwest/struct.ClientBuilder.html
 
   let baseUrl = format!("https://api.mangadex.org/manga/{}", _mangaId);
   let url = reqwest::Url::parse(&baseUrl).unwrap();

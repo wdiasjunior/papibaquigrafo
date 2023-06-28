@@ -1,2 +1,4 @@
-/target
+/rust/target
+/rust/downloads
+/go/downloads
 /downloads
