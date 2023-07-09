@@ -15,7 +15,8 @@ fn main() {
   // let mangaId = "d09c8abd-24ec-41de-ac8b-b6381a2f3a63".to_string();
   // mangadex::mangadex(mangaId);
 
-  print!("Choose an option: \n1: Mangadex \n2: TCB Scans \n3: tonarinoyj.jp (One Punch Man) \n4: Comico.jp \n5: Cubari\n");
+  print!("papibaquigrafo rust.");
+  print!("Choose an option: \n1: Mangadex \n2: TCB Scans \n3: tonarinoyj.jp (One Punch Man) \n4: Comico.jp \n5: Cubari\nquit");
   loop {
     print!("-> ");
     std::io::stdout().flush().expect("failed to flush stdout");
