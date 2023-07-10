@@ -9,6 +9,9 @@ import (
   "encoding/json"
   "sort"
   "strconv"
+  "strings"
+  "bufio"
+  "os"
 )
 
 func mangadex() {
@@ -69,8 +72,11 @@ func mangadex() {
   fmt.Println("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'oneshot', 'quit'\n")
   loop: for {
     fmt.Printf("-> ")
-    var userInput string
-    fmt.Scanf("%s", &userInput)
+    // var userInput string
+    // fmt.Scanf("%s", &userInput)
+    _input := bufio.NewReader(os.Stdin)
+    userInput, _ := _input.ReadString('\n')
+    userInput = strings.TrimSuffix(userInput, "\n")
 
     switch userInput {
       case "all":
@@ -112,7 +118,7 @@ func getManga(_mangaId string) (MangaData, error) {
   resp, err := http.Get(url)
   if err != nil {
     log.Fatalln(err)
-    return mangaData, errors.New("Could get manga")
+    return mangaData, errors.New("Could not get manga")
   }
   defer resp.Body.Close()
   body, err := ioutil.ReadAll(resp.Body)
@@ -121,6 +127,7 @@ func getManga(_mangaId string) (MangaData, error) {
     return mangaData, errors.New("Could not parse body")
   }
   if err := json.Unmarshal(body, &mangaData); err != nil {
+    log.Fatalln(err)
     fmt.Println("Could not unmarshal JSON")
     return mangaData, errors.New("Could not unmarshal JSON")
   }
@@ -159,6 +166,7 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
     return mangaChapters, errors.New("Could not parse body")
   }
   if err := json.Unmarshal(body, &mangaChapters); err != nil {
+    log.Fatalln(err)
     fmt.Println("Could not unmarshal JSON")
     return mangaChapters, errors.New("Could not unmarshal JSON")
   }
@@ -200,6 +208,107 @@ type MangaImages struct {
 }
 
 func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _userInput string, _singleFolder bool) {
-  fmt.Println(_mangaTitle, _mangaChapters, _userInput, _singleFolder)
+  // fmt.Println(_mangaTitle, _mangaChapters, _userInput, _singleFolder)
 
+  fmt.Println("\nDownloading")
+
+  // var mangaTitleDirectory string = fmt.Sprintf("downloads/%s", _mangaTitle)
+  // fsCreateDir(mangaTitleDirectory)
+
+
+
+  userInput := strings.Split(_userInput, " ")
+  // if !true {
+  //   fmt.Println(userInput)
+  // }
+  var i int = 0
+  i: for {
+    // fmt.Println(len(_userInput), *_mangaChapters.Data[i].Attributes.Chapter)
+
+    if (contains(userInput, *_mangaChapters.Data[i].Attributes.Chapter)) || (_userInput == "oneshot") || (_userInput == "") {
+
+      var url string = fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", _mangaChapters.Data[i].ID)
+      var mangaChapterImages MangaImages
+
+      resp, err := http.Get(url)
+      if err != nil {
+        log.Fatalln(err)
+        // return mangaChapterImages, errors.New("Could not get manga chapter")
+        break
+      }
+      defer resp.Body.Close()
+      body, err := ioutil.ReadAll(resp.Body)
+      if err != nil {
+        log.Fatalln(err)
+        // return mangaChapterImages, errors.New("Could not parse body")
+        break
+      }
+      if err := json.Unmarshal(body, &mangaChapterImages); err != nil {
+        log.Fatalln(err)
+        fmt.Println("Could not unmarshal JSON")
+        // return mangaChapterImages, errors.New("Could not unmarshal JSON")
+        break
+      }
+
+      var dir string
+      if _singleFolder {
+        dir = fmt.Sprintf("downloads/%s", _mangaTitle)
+      } else if _userInput == "oneshot" {
+        dir = fmt.Sprintf("downloads/%s/Oneshot", _mangaTitle)
+      } else {
+        if len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
+          dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter, &_mangaChapters.Data[i].Attributes.Title)
+        } else {
+          dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter)
+        }
+      }
+      // fmt.Println("aqui", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter, *_mangaChapters.Data[i].Attributes.Title, _mangaChapters.Data[i].ID)
+      fsCreateDir(dir)
+
+      // if condition {
+        // var j int = 0
+        // j: for {
+        //   var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
+        //   resp, err := http.Get(url)
+        //   if err != nil {
+        //     log.Fatalln(err)
+        //     // return mangaChapterImages, errors.New("Could not get chapter image")
+        //     break j
+        //   }
+        //   defer resp.Body.Close()
+        //   chapterImages, err := ioutil.ReadAll(resp.Body)
+        //   if err != nil {
+        //     log.Fatalln(err)
+        //     // return mangaChapterImages, errors.New("Could not parse chapterImage")
+        //     break j
+        //   }
+        //   // mangaChapterImages.Chapter.Data[j]
+        //   // fsCreateDir("downloads/Fire Punch/Ch.1")
+        //   // fsCreateFile("teste.png", "downloads/Fire Punch/Ch.1", j + 1, chapterImage)
+        //   // fmt.Println(chapterImages)
+        //
+        //   if j < len(chapterImages) - 1 {
+        //     j++
+        //   } else {
+        //     break j
+        //   }
+        // }
+      // }
+      }
+    if i < len(_mangaChapters.Data) - 1 {
+      i++
+    } else {
+      break i
+    }
+  }
+
+  // fmt.Println(userInput)
+  // if _userInput == ""  {
+  //   // for _, chapter := range _userInput {
+  //     fmt.Println(userInput)
+  //   // }
+  // }
+  // if _userInput == "oneshot"  {
+  //   fmt.Println("oneshot")
+  // }
 }
