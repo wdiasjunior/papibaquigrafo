@@ -15,13 +15,14 @@ import (
 )
 
 func mangadex() {
-  // fmt.Printf("Enter the Manga ID: ")
-  // var userInput string
-  // fmt.Scanf("%s", &userInput)
+  // fmt.Printf("Enter the Manga ID: ") // TODO - uncomment this
+  // var userInput string // TODO - uncomment this
+  // fmt.Scanf("%s", &userInput) // TODO - uncomment this
 
   // var userInput = "ead4b388-cf7f-448c-aec6-bf733968162c" // Hanabi - oneshot
-  // var userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8" // Tomo-chan
-  var userInput = "6fef1f74-a0ad-4f0d-99db-d32a7cd24098" // fire punch
+  var userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8" // Tomo-chan
+  // var userInput = "6fef1f74-a0ad-4f0d-99db-d32a7cd24098" // fire punch
+
   mangaInfo, err := getManga(userInput)
   if err != nil {
     fmt.Println(err)
@@ -43,7 +44,6 @@ func mangadex() {
   }
   var mangaTitle = mangaInfo.Data.Attributes.Title.EN;
   fmt.Println(mangaTitle)
-  // fmt.Println("mangaChapters.Total", mangaChapters.Total)
   fmt.Println("Number of chapters: ", len(mangaChapters.Data))
   fmt.Println("available chapters:")
 
@@ -93,7 +93,6 @@ func mangadex() {
       default:
         getMangaChapterImages(mangaTitle, mangaChapters, userInput, false)
     }
-    fmt.Printf("\nDownload completed!\n")
     break loop
   }
 }
@@ -251,7 +250,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
       fmt.Println("Downloading chapter: ", *_mangaChapters.Data[i].Attributes.Chapter)
-      fsCreateDir(dir)
+      fsCreateDir(dir, _singleFolder)
       var j int = 0
       j: for {
         var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
@@ -270,7 +269,15 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
           break j
         }
 
-        fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, chapterImage)
+        // var fileNameNumber string
+        // if _userInput == "" && _singleFolder {
+        //   fileNameNumber = strconv.Atoi(*_mangaChapters.Data[i].Attributes.Chapter)
+        // } else {
+        //   fileNameNumber = j + 1
+        // }
+
+        // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
+        fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
 
         if j < len(mangaChapterImages.Chapter.Data) - 1 {
           j++
@@ -285,4 +292,5 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       break i
     }
   }
+  fmt.Printf("\nDownload completed!\n")
 }
