@@ -215,16 +215,10 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
   // var mangaTitleDirectory string = fmt.Sprintf("downloads/%s", _mangaTitle)
   // fsCreateDir(mangaTitleDirectory)
 
-
-
   userInput := strings.Split(_userInput, " ")
-  // if !true {
-  //   fmt.Println(userInput)
-  // }
+
   var i int = 0
   i: for {
-    // fmt.Println(len(_userInput), *_mangaChapters.Data[i].Attributes.Chapter)
-
     if (contains(userInput, *_mangaChapters.Data[i].Attributes.Chapter)) || (_userInput == "oneshot") || (_userInput == "") {
 
       var url string = fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", _mangaChapters.Data[i].ID)
@@ -263,36 +257,38 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
       // fmt.Println("aqui", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter, *_mangaChapters.Data[i].Attributes.Title, _mangaChapters.Data[i].ID)
+      fmt.Println("Downloading chapter: ", *_mangaChapters.Data[i].Attributes.Chapter)
       fsCreateDir(dir)
-
       // if condition {
-        // var j int = 0
-        // j: for {
-        //   var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
-        //   resp, err := http.Get(url)
-        //   if err != nil {
-        //     log.Fatalln(err)
-        //     // return mangaChapterImages, errors.New("Could not get chapter image")
-        //     break j
-        //   }
-        //   defer resp.Body.Close()
-        //   chapterImages, err := ioutil.ReadAll(resp.Body)
-        //   if err != nil {
-        //     log.Fatalln(err)
-        //     // return mangaChapterImages, errors.New("Could not parse chapterImage")
-        //     break j
-        //   }
-        //   // mangaChapterImages.Chapter.Data[j]
-        //   // fsCreateDir("downloads/Fire Punch/Ch.1")
-        //   // fsCreateFile("teste.png", "downloads/Fire Punch/Ch.1", j + 1, chapterImage)
-        //   // fmt.Println(chapterImages)
-        //
-        //   if j < len(chapterImages) - 1 {
-        //     j++
-        //   } else {
-        //     break j
-        //   }
-        // }
+        var j int = 0
+        j: for {
+          var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
+          resp, err := http.Get(url)
+          if err != nil {
+            log.Fatalln(err)
+            // return mangaChapterImages, errors.New("Could not get chapter image")
+            break j
+          }
+          defer resp.Body.Close()
+          chapterImage, err := ioutil.ReadAll(resp.Body)
+          if err != nil {
+            log.Fatalln(err)
+            fmt.Println("Could not parse chapterImage")
+            // return mangaChapterImages, errors.New("Could not parse chapterImage")
+            break j
+          }
+          // mangaChapterImages.Chapter.Data[j]
+          // fsCreateDir("downloads/Fire Punch/Ch.1")
+          fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, chapterImage)
+          // fsCreateFile(_fileName string, _dir string, _fileNameNumber int, _fileContents []byte)
+          // fmt.Println(chapterImages)
+
+          if j < len(mangaChapterImages.Chapter.Data) - 1 {
+            j++
+          } else {
+            break j
+          }
+        }
       // }
       }
     if i < len(_mangaChapters.Data) - 1 {
