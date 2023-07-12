@@ -247,10 +247,10 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       } else if _userInput == "oneshot" {
         dir = fmt.Sprintf("downloads/%s/Oneshot", _mangaTitle)
       } else {
-        if len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
-          dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter, *_mangaChapters.Data[i].Attributes.Title)
+        if _mangaChapters.Data[i].Attributes.Title != nil && len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
+          dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, chapterNameNoNIL, *_mangaChapters.Data[i].Attributes.Title)
         } else {
-          dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter)
+          dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, chapterNameNoNIL)
         }
       }
       fmt.Println("Downloading chapter: ", chapterNameNoNIL)
