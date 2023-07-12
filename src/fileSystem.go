@@ -8,13 +8,13 @@ import (
   "io/ioutil"
 )
 
-func fsCreateDir(_dir string, _singleFolder bool) {
+func fsCreateDir(_dir string, _singleFolder bool) string {
   if _singleFolder {
     err := os.MkdirAll(_dir, 0755)
     if err != nil {
       fmt.Println("Error creating directory:", err)
     }
-    return
+    return _dir
   }
   var dirVersion int = 2
   var stringDir string = _dir + " - V"
@@ -30,7 +30,7 @@ func fsCreateDir(_dir string, _singleFolder bool) {
         if err != nil {
           fmt.Println("Error creating directory:", err)
         }
-        break
+        return _stringDir
       } else {
         dirVersion += 1
       }
@@ -39,10 +39,9 @@ func fsCreateDir(_dir string, _singleFolder bool) {
       if err != nil {
         fmt.Println("Error creating directory:", err)
       }
-      break
+      return _dir
     }
   }
-  return
 }
 
 func fsCreateFile(_fileName string, _dir string, _fileNameNumber int, _fileContents []byte) {

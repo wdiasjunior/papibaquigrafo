@@ -257,7 +257,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
       fmt.Println("Downloading chapter: ", chapterNameNoNIL)
-      fsCreateDir(dir, _singleFolder)
+      _dir := fsCreateDir(dir, _singleFolder)
       var j int = 0
       j: for {
         var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
@@ -284,9 +284,9 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         // } else {
         //   fileNameNumber = j + 1
         // }
-        // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
-        // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
-        fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, chapterImage)
+        // fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
+        // fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
+        fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, chapterImage)
         time.Sleep(1 * time.Second)
         if j < len(mangaChapterImages.Chapter.Data) - 1 {
           j++
