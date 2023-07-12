@@ -12,6 +12,7 @@ import (
   "strings"
   "bufio"
   "os"
+  "time"
 )
 
 func mangadex() {
@@ -224,6 +225,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       resp, err := http.Get(url)
       if err != nil {
         log.Fatalln(err)
+        fmt.Println("Could not get manga chapter")
         // return mangaChapterImages, errors.New("Could not get manga chapter")
         break
       }
@@ -231,12 +233,13 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       body, err := ioutil.ReadAll(resp.Body)
       if err != nil {
         log.Fatalln(err)
+        fmt.Println("Could not parse body - manga chapter")
         // return mangaChapterImages, errors.New("Could not parse body")
         break
       }
       if err := json.Unmarshal(body, &mangaChapterImages); err != nil {
         log.Fatalln(err)
-        fmt.Println("Could not unmarshal JSON")
+        fmt.Println("Could not unmarshal JSON - manga chapter")
         // return mangaChapterImages, errors.New("Could not unmarshal JSON")
         break
       }
@@ -261,7 +264,8 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         resp, err := http.Get(url)
         if err != nil {
           log.Fatalln(err)
-          // return mangaChapterImages, errors.New("Could not get chapter image")
+          fmt.Println("Could not get chapterImage")
+          // return mangaChapterImages, errors.New("Could not get chapterImage")
           break j
         }
         defer resp.Body.Close()
@@ -283,7 +287,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
         fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, chapterImage)
-
+        time.Sleep(1 * time.Second)
         if j < len(mangaChapterImages.Chapter.Data) - 1 {
           j++
         } else {
@@ -291,6 +295,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
     }
+    time.Sleep(3 * time.Second)
     if i < len(_mangaChapters.Data) - 1 {
       i++
     } else {
