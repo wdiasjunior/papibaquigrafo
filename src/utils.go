@@ -9,7 +9,10 @@ func PrettyPrintJson(_json interface{}) string {
   return string(s)
 }
 
-func contains(slice []string, element string) bool {
+func contains(slice []string, element string, _isOneshot bool) bool {
+  if _isOneshot {
+    return false
+  }
   for _, el := range slice {
     if el == element {
       return true

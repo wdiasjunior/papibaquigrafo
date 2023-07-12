@@ -19,9 +19,7 @@ func mangadex() {
   // var userInput string // TODO - uncomment this
   // fmt.Scanf("%s", &userInput) // TODO - uncomment this
 
-  // var userInput = "ead4b388-cf7f-448c-aec6-bf733968162c" // Hanabi - oneshot
-  var userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8" // Tomo-chan
-  // var userInput = "6fef1f74-a0ad-4f0d-99db-d32a7cd24098" // fire punch
+  // var userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8" // Tomo-chan
 
   mangaInfo, err := getManga(userInput)
   if err != nil {
@@ -72,8 +70,6 @@ func mangadex() {
   fmt.Println("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'oneshot', 'quit'\n")
   loop: for {
     fmt.Printf("-> ")
-    // var userInput string
-    // fmt.Scanf("%s", &userInput)
     _input := bufio.NewReader(os.Stdin)
     userInput, _ := _input.ReadString('\n')
     userInput = strings.TrimSuffix(userInput, "\n")
@@ -213,7 +209,15 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
 
   var i int = 0
   i: for {
-    if (contains(userInput, *_mangaChapters.Data[i].Attributes.Chapter)) || (_userInput == "oneshot") || (_userInput == "") {
+    var chapterNameNoNIL string
+    if _userInput == "oneshot" {
+      chapterNameNoNIL = "Oneshot"
+    } else if _mangaChapters.Data[i].Attributes.Chapter == nil {
+      chapterNameNoNIL = ""
+    } else {
+      chapterNameNoNIL = *_mangaChapters.Data[i].Attributes.Chapter
+    }
+    if (contains(userInput, chapterNameNoNIL, _userInput == "oneshot")) || (_userInput == "oneshot") || (_userInput == "") {
       var url string = fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", _mangaChapters.Data[i].ID)
       var mangaChapterImages MangaImages
 
@@ -244,12 +248,12 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         dir = fmt.Sprintf("downloads/%s/Oneshot", _mangaTitle)
       } else {
         if len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
-          dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter, &_mangaChapters.Data[i].Attributes.Title)
+          dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter, *_mangaChapters.Data[i].Attributes.Title)
         } else {
           dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, *_mangaChapters.Data[i].Attributes.Chapter)
         }
       }
-      fmt.Println("Downloading chapter: ", *_mangaChapters.Data[i].Attributes.Chapter)
+      fmt.Println("Downloading chapter: ", chapterNameNoNIL)
       fsCreateDir(dir, _singleFolder)
       var j int = 0
       j: for {
@@ -269,15 +273,16 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
           break j
         }
 
+        // was trying to make 'asf' work. will I ever need to use this option again?
         // var fileNameNumber string
         // if _userInput == "" && _singleFolder {
         //   fileNameNumber = strconv.Atoi(*_mangaChapters.Data[i].Attributes.Chapter)
         // } else {
         //   fileNameNumber = j + 1
         // }
-
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
-        fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
+        // fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
+        fsCreateFile(mangaChapterImages.Chapter.Data[j], dir, j + 1, chapterImage)
 
         if j < len(mangaChapterImages.Chapter.Data) - 1 {
           j++
