@@ -15,9 +15,9 @@ import (
 )
 
 func mangadex() {
-  // fmt.Printf("Enter the Manga ID: ") // TODO - uncomment this
-  // var userInput string // TODO - uncomment this
-  // fmt.Scanf("%s", &userInput) // TODO - uncomment this
+  fmt.Printf("Enter the Manga ID: ") // TODO - uncomment this
+  var userInput string // TODO - uncomment this
+  fmt.Scanf("%s", &userInput) // TODO - uncomment this
 
   // var userInput = "76ee7069-23b4-493c-bc44-34ccbf3051a8" // Tomo-chan
 
