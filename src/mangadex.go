@@ -287,7 +287,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
         fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, chapterImage)
-        time.Sleep(1 * time.Second)
+        time.Sleep(2 * time.Second)
         if j < len(mangaChapterImages.Chapter.Data) - 1 {
           j++
         } else {
@@ -295,7 +295,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
     }
-    time.Sleep(3 * time.Second)
+    time.Sleep(10 * time.Second)
     if i < len(_mangaChapters.Data) - 1 {
       i++
     } else {
