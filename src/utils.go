@@ -49,5 +49,3 @@ func contains(slice []string, element string, _isOneshot bool) bool {
 //   }
 //   return responseBody, nil
 // }
-
-// f0a682dd-38dc-4d51-8469-e6ed181766e4 - kirara
