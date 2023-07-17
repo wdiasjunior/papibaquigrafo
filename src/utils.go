@@ -2,6 +2,10 @@ package src
 
 import (
   "encoding/json"
+  // "errors"
+  // "fmt"
+  // "log"
+  // "net/http"
 )
 
 func PrettyPrintJson(_json interface{}) string {
@@ -20,3 +24,30 @@ func contains(slice []string, element string, _isOneshot bool) bool {
   }
   return false
 }
+
+// func urlReq(url string) ([]byte, error) {
+//   var responseBody []byte
+//   var error = nill
+//   for {
+//     // retry as many times as necessary
+//     // if error/timeout sleep for 10s println and retry
+//
+//     if err != nil {
+//       fmt.Println("Could not get manga chapter")
+//       log.Panic(err)
+//       // return mangaChapterImages, errors.New("Could not get manga chapter")
+//       // break
+//     }
+//     defer resp.Body.Close()
+//     body, err := ioutil.ReadAll(resp.Body)
+//     if err != nil {
+//       log.Panic(err)
+//       fmt.Println("Could not parse body - manga chapter")
+//       // return mangaChapterImages, errors.New("Could not parse body")
+//       // break
+//     }
+//   }
+//   return responseBody, nil
+// }
+
+// f0a682dd-38dc-4d51-8469-e6ed181766e4 - kirara

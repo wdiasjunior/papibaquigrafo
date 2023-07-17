@@ -4,7 +4,7 @@ import (
   "fmt"
   "errors"
   "io/ioutil"
-  "log"
+  // "log"
   "net/http"
   "encoding/json"
   "sort"
@@ -12,7 +12,7 @@ import (
   "strings"
   "bufio"
   "os"
-  "time"
+  // "time"
 )
 
 func mangadex() {
@@ -113,17 +113,17 @@ func getManga(_mangaId string) (MangaData, error) {
 
   resp, err := http.Get(url)
   if err != nil {
-    log.Fatalln(err)
-    return mangaData, errors.New("Could not get manga")
+    // log.Panic(err)
+    return mangaData, errors.New("Could not get manga info")
   }
   defer resp.Body.Close()
   body, err := ioutil.ReadAll(resp.Body)
   if err != nil {
-    log.Fatalln(err)
+    // log.Panic(err)
     return mangaData, errors.New("Could not parse body")
   }
   if err := json.Unmarshal(body, &mangaData); err != nil {
-    log.Fatalln(err)
+    // log.Panic(err)
     fmt.Println("Could not unmarshal JSON")
     return mangaData, errors.New("Could not unmarshal JSON")
   }
@@ -152,17 +152,17 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
 
   resp, err := http.Get(url)
   if err != nil {
-    log.Fatalln(err)
+    // log.Panic(err)
     return mangaChapters, errors.New("Could get manga chapter")
   }
   defer resp.Body.Close()
   body, err := ioutil.ReadAll(resp.Body)
   if err != nil {
-    log.Fatalln(err)
+    // log.Panic(err)
     return mangaChapters, errors.New("Could not parse body")
   }
   if err := json.Unmarshal(body, &mangaChapters); err != nil {
-    log.Fatalln(err)
+    // log.Panic(err)
     fmt.Println("Could not unmarshal JSON")
     return mangaChapters, errors.New("Could not unmarshal JSON")
   }
@@ -175,13 +175,13 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
 
       resp, err := http.Get(url)
       if err != nil {
-        log.Fatalln(err)
-        return mangaChapters, errors.New("Could get manga chapter")
+        // log.Panic(err)
+        return mangaChapters, errors.New("Could get manga chapters")
       }
       defer resp.Body.Close()
       body, err := ioutil.ReadAll(resp.Body)
       if err != nil {
-        log.Fatalln(err)
+        // log.Panic(err)
         return mangaChapters, errors.New("Could not parse body")
       }
       if err := json.Unmarshal(body, &mangaChapters2); err != nil {
@@ -222,26 +222,32 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       var url string = fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", _mangaChapters.Data[i].ID)
       var mangaChapterImages MangaImages
 
-      resp, err := http.Get(url)
-      if err != nil {
-        log.Fatalln(err)
-        fmt.Println("Could not get manga chapter")
-        // return mangaChapterImages, errors.New("Could not get manga chapter")
-        break
-      }
-      defer resp.Body.Close()
-      body, err := ioutil.ReadAll(resp.Body)
-      if err != nil {
-        log.Fatalln(err)
-        fmt.Println("Could not parse body - manga chapter")
-        // return mangaChapterImages, errors.New("Could not parse body")
-        break
-      }
-      if err := json.Unmarshal(body, &mangaChapterImages); err != nil {
-        log.Fatalln(err)
-        fmt.Println("Could not unmarshal JSON - manga chapter")
-        // return mangaChapterImages, errors.New("Could not unmarshal JSON")
-        break
+      for {
+        resp, err := http.Get(url)
+        if err != nil {
+          // fmt.Println("Could not get manga chapter images")
+          fmt.Println("Request error. Retrying.")
+          // log.Panic(err)
+          // return mangaChapterImages, errors.New("Could not get manga chapter")
+          // break
+        }
+        defer resp.Body.Close()
+        body, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+          // log.Panic(err)
+          // fmt.Println("Could not parse body - manga chapter")
+          fmt.Println("Request error. Retrying.")
+          // return mangaChapterImages, errors.New("Could not parse body")
+          // break
+        }
+        if err := json.Unmarshal(body, &mangaChapterImages); err != nil {
+          // log.Panic(err)
+          fmt.Println("Could not unmarshal JSON - manga chapter images")
+          // return mangaChapterImages, errors.New("Could not unmarshal JSON")
+          // break
+        } else {
+          break
+        }
       }
 
       var dir string
@@ -261,20 +267,28 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       var j int = 0
       j: for {
         var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
-        resp, err := http.Get(url)
-        if err != nil {
-          log.Fatalln(err)
-          fmt.Println("Could not get chapterImage")
-          // return mangaChapterImages, errors.New("Could not get chapterImage")
-          break j
-        }
-        defer resp.Body.Close()
-        chapterImage, err := ioutil.ReadAll(resp.Body)
-        if err != nil {
-          log.Fatalln(err)
-          fmt.Println("Could not parse chapterImage")
-          // return mangaChapterImages, errors.New("Could not parse chapterImage")
-          break j
+        var chapterImage []byte
+        for {
+          resp, err := http.Get(url)
+          if err != nil {
+            // log.Panic(err)
+            // fmt.Println("Could not get chapterImage")
+            fmt.Println("Request error. Retrying.")
+            // return mangaChapterImages, errors.New("Could not get chapterImage")
+            // break j
+          }
+          defer resp.Body.Close()
+          res, err := ioutil.ReadAll(resp.Body)
+          if err != nil {
+            // log.Panic(err)
+            // fmt.Println("Could not parse chapterImage")
+            fmt.Println("Request error. Retrying.")
+            // return mangaChapterImages, errors.New("Could not parse chapterImage")
+            // break j
+          } else {
+            chapterImage = res
+            break
+          }
         }
 
         // was trying to make 'asf' work. will I ever need to use this option again?
@@ -287,7 +301,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, fileNameNumber, _singleFolder, _userInput == "oneshot", chapterImage)
         // fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, _singleFolder, _userInput == "oneshot", chapterImage)
         fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, chapterImage)
-        time.Sleep(2 * time.Second)
+        // time.Sleep(2 * time.Second)
         if j < len(mangaChapterImages.Chapter.Data) - 1 {
           j++
         } else {
@@ -295,7 +309,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
     }
-    time.Sleep(10 * time.Second)
+    // time.Sleep(10 * time.Second)
     if i < len(_mangaChapters.Data) - 1 {
       i++
     } else {
