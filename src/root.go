@@ -36,11 +36,3 @@ func Execute() {
     }
   }
 }
-
-// TODO
-// - use Bubble Tea for TUI
-// - use tachiyomi user agent
-// - 'asf' (tomo-chan alike. single page per chapter, so it saves everything in one directory)
-// - prevent panic and crashes with loops and retries
-// - better chapter selection
-// -
