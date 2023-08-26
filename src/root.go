@@ -15,17 +15,17 @@ func Execute() {
 
     switch userInput {
       case "1":
-        fmt.Println("\x1B[2J\x1B[1;1H") // clears terminal
+        fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Mangadex")
         mangadex()
         break loop
       case "2":
-        fmt.Println("\x1B[2J\x1B[1;1H") // clears terminal
+        fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("TCB Scans")
         tcbscans()
         break loop
       case "3":
-        fmt.Println("\x1B[2J\x1B[1;1H") // clears terminal
+        fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Mangabat")
         mangabat()
         break loop
