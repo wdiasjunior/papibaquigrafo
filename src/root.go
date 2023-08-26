@@ -5,7 +5,7 @@ import (
 )
 
 func Execute() {
-  fmt.Println("papibaquigrafo go.")
+  fmt.Println("papibaquigrafo.")
   fmt.Println("Choose an option: \n1: Mangadex \n2: TCB Scans \n3: Mangabat \nquit")
 
   loop: for {
