@@ -300,28 +300,30 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       _dir := fsCreateDir(dir, _singleFolder)
       var j int = 0
       j: for {
-        var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
-        var chapterImage []byte
-        for {
-          resp, err := http.Get(url)
-          if err != nil {
-            fmt.Println("Request error. Retrying.")
+        if len(mangaChapterImages.Chapter.Data) > 0 {
+          var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
+          var chapterImage []byte
+          for {
+            resp, err := http.Get(url)
+            if err != nil {
+              fmt.Println("Request error. Retrying.")
+            }
+            defer resp.Body.Close()
+            res, err := ioutil.ReadAll(resp.Body)
+            if err != nil {
+              fmt.Println("Request error. Retrying.")
+            } else {
+              chapterImage = res
+              break
+            }
           }
-          defer resp.Body.Close()
-          res, err := ioutil.ReadAll(resp.Body)
-          if err != nil {
-            fmt.Println("Request error. Retrying.")
-          } else {
-            chapterImage = res
-            break
-          }
-        }
 
-        fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, chapterImage, false, "")
-        if j < len(mangaChapterImages.Chapter.Data) - 1 {
-          j++
-        } else {
-          break j
+          fsCreateFile(mangaChapterImages.Chapter.Data[j], _dir, j + 1, chapterImage, false, "")
+          if j < len(mangaChapterImages.Chapter.Data) - 1 {
+            j++
+          } else {
+            break j
+          }
         }
       }
     }
