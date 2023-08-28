@@ -157,6 +157,7 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
     fmt.Println("Could not unmarshal JSON")
   }
   var dir string = fmt.Sprintf("downloads/%s", _mangaTitle)
+  _dir := fsCreateDir(dir, false)
   for _, cover := range mangaCoversData.Data {
     var url string = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", _mangaId, cover.Attributes.FileName)
     var coverImage []byte
@@ -176,7 +177,7 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
     }
 
     var coverFileName = fmt.Sprintf("Cover %s - %s", cover.Attributes.Volume, cover.Attributes.Locale)
-    fsCreateFile(cover.Attributes.FileName, dir, 0, coverImage, true, coverFileName)
+    fsCreateFile(cover.Attributes.FileName, _dir, 0, coverImage, true, coverFileName)
   }
 }
 
