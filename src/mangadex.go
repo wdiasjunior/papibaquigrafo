@@ -284,23 +284,23 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         }
       }
 
-      var dir string
-      if _singleFolder {
-        dir = fmt.Sprintf("downloads/%s", _mangaTitle)
-      } else if _userInput == "oneshot" {
-        dir = fmt.Sprintf("downloads/%s/Oneshot", _mangaTitle)
-      } else {
-        if _mangaChapters.Data[i].Attributes.Title != nil && len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
-          dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, chapterNameNoNIL, *_mangaChapters.Data[i].Attributes.Title)
+      if len(mangaChapterImages.Chapter.Data) > 0 {
+        var dir string
+        if _singleFolder {
+          dir = fmt.Sprintf("downloads/%s", _mangaTitle)
+        } else if _userInput == "oneshot" {
+          dir = fmt.Sprintf("downloads/%s/Oneshot", _mangaTitle)
         } else {
-          dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, chapterNameNoNIL)
+          if _mangaChapters.Data[i].Attributes.Title != nil && len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
+            dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, chapterNameNoNIL, *_mangaChapters.Data[i].Attributes.Title)
+          } else {
+            dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, chapterNameNoNIL)
+          }
         }
-      }
-      fmt.Println("Downloading chapter: ", chapterNameNoNIL)
-      _dir := fsCreateDir(dir, _singleFolder)
-      var j int = 0
-      j: for {
-        if len(mangaChapterImages.Chapter.Data) > 0 {
+        fmt.Println("Downloading chapter: ", chapterNameNoNIL)
+        _dir := fsCreateDir(dir, _singleFolder)
+        var j int = 0
+        j: for {
           var url string = fmt.Sprintf("https://uploads.mangadex.org/data/%s/%s", mangaChapterImages.Chapter.Hash, mangaChapterImages.Chapter.Data[j])
           var chapterImage []byte
           for {
