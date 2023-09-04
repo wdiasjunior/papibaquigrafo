@@ -37,7 +37,16 @@ func mangadex() {
     fmt.Println("No chapters available\n")
     return
   }
-  var mangaTitle = mangaInfo.Data.Attributes.Title.EN;
+  var mangaTitle string
+  if mangaInfo.Data.Attributes.Title.EN != "" {
+    mangaTitle = mangaInfo.Data.Attributes.Title.EN
+  } else if mangaInfo.Data.Attributes.Title.JARomaji != "" {
+    mangaTitle = mangaInfo.Data.Attributes.Title.JARomaji
+  } else if mangaInfo.Data.Attributes.Title.JA != "" {
+    mangaTitle = mangaInfo.Data.Attributes.Title.JA
+  } else {
+    mangaTitle = "manga - unknown title"
+  }
   fmt.Println(mangaTitle)
   fmt.Println("Number of chapters: ", len(mangaChapters.Data))
   fmt.Println("available chapters:")
@@ -101,6 +110,8 @@ type MangaData struct {
     Attributes struct {
       Title struct {
         EN string `json:"en"`
+        JARomaji string `json:"ja-ro"`
+        JA string `json:"ja"`
       } `json:"title"`
       AvailableTranslatedLanguages []string `json:"availableTranslatedLanguages"`
     } `json:"attributes"`
@@ -157,7 +168,6 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
     fmt.Println("Could not unmarshal JSON")
   }
   var dir string = fmt.Sprintf("downloads/%s", _mangaTitle)
-  _dir := fsCreateDir(dir, false)
   for _, cover := range mangaCoversData.Data {
     var url string = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", _mangaId, cover.Attributes.FileName)
     var coverImage []byte
@@ -177,7 +187,7 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
     }
 
     var coverFileName = fmt.Sprintf("Cover %s - %s", cover.Attributes.Volume, cover.Attributes.Locale)
-    fsCreateFile(cover.Attributes.FileName, _dir, 0, coverImage, true, coverFileName)
+    fsCreateFile(cover.Attributes.FileName, dir, 0, coverImage, true, coverFileName)
   }
 }
 
