@@ -169,25 +169,28 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
   }
   var dir string = fmt.Sprintf("downloads/%s", _mangaTitle)
   for _, cover := range mangaCoversData.Data {
-    var url string = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", _mangaId, cover.Attributes.FileName)
-    var coverImage []byte
-    for {
-      resp, err := http.Get(url)
-      if err != nil {
-        fmt.Println("Request error. Retrying.")
+    // skip covers that are not en or jp
+    if cover.Attributes.Locale == "ja" || cover.Attributes.Locale == "en" {
+      var url string = fmt.Sprintf("https://uploads.mangadex.org/covers/%s/%s", _mangaId, cover.Attributes.FileName)
+      var coverImage []byte
+      for {
+        resp, err := http.Get(url)
+        if err != nil {
+          fmt.Println("Request error. Retrying.")
+        }
+        defer resp.Body.Close()
+        res, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+          fmt.Println("Request error. Retrying.")
+        } else {
+          coverImage = res
+          break
+        }
       }
-      defer resp.Body.Close()
-      res, err := ioutil.ReadAll(resp.Body)
-      if err != nil {
-        fmt.Println("Request error. Retrying.")
-      } else {
-        coverImage = res
-        break
-      }
-    }
 
-    var coverFileName = fmt.Sprintf("Cover %s - %s", cover.Attributes.Volume, cover.Attributes.Locale)
-    fsCreateFile(cover.Attributes.FileName, dir, 0, coverImage, true, coverFileName)
+      var coverFileName = fmt.Sprintf("Cover %s - %s", cover.Attributes.Volume, cover.Attributes.Locale)
+      fsCreateFile(cover.Attributes.FileName, dir, 0, coverImage, true, coverFileName)
+    }
   }
 }
 
