@@ -121,8 +121,6 @@ func getChapterImages(_mangaTitle string, _mangaChapter string)  {
 
   var chapterImagesList []string = regex.FindAllString(string(body), -1)
 
-  fmt.Println(chapterImagesList)
-
   mangaChapterNumber := regex2.FindStringSubmatch(_mangaChapter)
 
   fmt.Println("Downloading chapter: ", mangaChapterNumber[1])
