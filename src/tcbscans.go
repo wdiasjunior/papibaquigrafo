@@ -38,7 +38,7 @@ func tcbscans() {
   fmt.Println(mangaTitleCapitalized)
 
   for i, chapter := range chapterList {
-    if i >= firstChapter && i <= lastChapter {
+    if i >= firstChapter - 1 && i <= lastChapter - 1 {
       getChapterImages(mangaTitleCapitalized, chapter)
     }
   }
