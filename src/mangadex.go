@@ -12,6 +12,7 @@ import (
   "bufio"
   "os"
 )
+// if "all" and name null == oneshot (probably) fix empty chapter number and put 0
 
 func mangadex() {
   fmt.Printf("Enter the Manga ID: ")

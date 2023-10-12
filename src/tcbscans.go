@@ -2,43 +2,61 @@ package src
 
 import (
   "fmt"
-  // "errors"
-  // "io/ioutil"
+  "io/ioutil"
+  "net/http"
+  "regexp"
+  "strconv"
   // "log"
-  // "net/http"
+  // "errors"
   // "encoding/json"
 )
 
 func tcbscans() {
-  fmt.Printf("tcbscans func")
+  mangaList := getMangaList()
+
+  fmt.Printf("\nEnter the Manga ID: ")
+  var userInput string
+  fmt.Scanf("%s", &userInput)
+
+  mangaID, _ := strconv.Atoi(userInput)
+
+  getChapterList(mangaList[mangaID - 1])
 }
-// 
-// extern crate reqwest;
-// extern crate serde;
-//
-// use regex::Regex;
-//
-// use std::io::{self, Write};
-//
-// fn getMangaList() -> Vec<String> {
-//   let baseUrl = "https://onepiecechapters.com/projects";
-//   let url = reqwest::Url::parse(&baseUrl).unwrap();
-//   let json = reqwest::blocking::get(url).expect("bad request").text().unwrap();
-//
-//   let mangaList: Vec<String> = Regex::new(r#"/mangas/(.*?)[^""]+"#).unwrap().find_iter(&json).map(|e| e.as_str().to_string()).collect();
-//   let mut filteredMangaList: Vec<String> = Vec::new();
-//   let mut n = 0;
-//
-//   for manga in &mangaList {
-//     if n % 2 == 0 {
-//       print!("{} {}\n", n / 2, manga);
-//       filteredMangaList.push(manga.to_string());
-//     }
-//     n += 1;
-//   }
-//   return filteredMangaList;
-// }
-//
+
+func getMangaList() []string {
+  var url string = "https://onepiecechapters.com/projects"
+
+  resp, err := http.Get(url)
+  if err != nil {
+    fmt.Println("Could not get manga list")
+  }
+  defer resp.Body.Close()
+  body, err := ioutil.ReadAll(resp.Body)
+  if err != nil {
+    fmt.Println("Could not parse body manga list")
+  }
+
+  regex, _ := regexp.Compile(`/mangas/(.*?)[^"]+`)
+
+  var mangaListRaw []string = regex.FindAllString(string(body), -1)
+  var mangaList = []string{}
+
+  regex2, _ := regexp.Compile(`/mangas/[^/]+/([^/]+)`)
+  for i, manga := range mangaListRaw {
+    if i % 2 == 0 {
+      mangaList = append(mangaList, manga)
+      mangaTitle := regex2.FindStringSubmatch(manga)
+      fmt.Println(fmt.Sprintf("%d - %s",(i / 2 + 1), mangaTitle[1]))
+    }
+  }
+
+  return mangaList
+}
+
+func getChapterList(_mangaURL string) {// []string {
+  fmt.Println(_mangaURL)
+}
+
 // fn getChapterList(_manga: String) -> Vec<String> {
 //   print!("\x1B[2J\x1B[1;1H"); // clears terminal
 //   print!("{} \n\n", _manga);
@@ -55,7 +73,11 @@ func tcbscans() {
 //   // }
 //   return chapterList;
 // }
-//
+
+
+
+
+
 // fn getChapterImages(_mangaTitle: String, _mangaChapter: String) {
 //   // print!("\x1B[2J\x1B[1;1H"); // clears terminal
 //   // print!("{} \n\n", _mangaChapter);
