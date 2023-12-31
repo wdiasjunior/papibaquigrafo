@@ -9,11 +9,13 @@ import (
 
 func fsCreateDir(_dir string, _singleFolder bool) string {
   if _singleFolder {
-    err := os.MkdirAll(_dir, 0755)
-    if err != nil {
-      fmt.Println("Error creating directory:", err)
+    if _, err := os.Stat(_dir); os.IsNotExist(err) {
+      err := os.MkdirAll(_dir, 0755)
+      if err != nil {
+        fmt.Println("Error creating directory:", err)
+      }
+      return _dir
     }
-    return _dir
   }
   var dirVersion int = 2
   var stringDir string = _dir + " - V"

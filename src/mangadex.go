@@ -169,6 +169,7 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
     fmt.Println("Could not unmarshal JSON")
   }
   var dir string = fmt.Sprintf("downloads/%s", _mangaTitle)
+  _dir := fsCreateDir(dir, true)
   for _, cover := range mangaCoversData.Data {
     // skip covers that are not en or jp
     if cover.Attributes.Locale == "ja" || cover.Attributes.Locale == "en" {
@@ -190,7 +191,7 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
       }
 
       var coverFileName = fmt.Sprintf("Cover %s - %s", cover.Attributes.Volume, cover.Attributes.Locale)
-      fsCreateFile(cover.Attributes.FileName, dir, 0, coverImage, true, coverFileName)
+      fsCreateFile(cover.Attributes.FileName, _dir, 0, coverImage, true, coverFileName)
     }
   }
 }
