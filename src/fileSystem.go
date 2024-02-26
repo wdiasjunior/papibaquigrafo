@@ -14,8 +14,8 @@ func fsCreateDir(_dir string, _singleFolder bool) string {
       if err != nil {
         fmt.Println("Error creating directory:", err)
       }
-      return _dir
     }
+    return _dir
   }
   var dirVersion int = 2
   var stringDir string = _dir + " - V"
