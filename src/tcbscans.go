@@ -27,6 +27,7 @@ func tcbscans() {
   firstChapter, _ := strconv.Atoi(userInputFirstChapter)
 
   fmt.Printf("\nLast chapter: ")
+  fmt.Printf("\n")
   var userInputLastChapter string
   fmt.Scanf("%s", &userInputLastChapter)
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
@@ -47,7 +48,7 @@ func tcbscans() {
 }
 
 func getMangaList() []string {
-  var url string = "https://tcbscans.com/projects"
+  var url string = "https://tcb-backup.bihar-mirchi.com/projects"
 
   resp, err := http.Get(url)
   if err != nil {
@@ -77,7 +78,7 @@ func getMangaList() []string {
 }
 
 func getChapterList(_mangaURL string) []string {
-  var url string = fmt.Sprintf("https://tcbscans.com%s", _mangaURL)
+  var url string = fmt.Sprintf("https://tcb-backup.bihar-mirchi.com%s", _mangaURL)
 
   resp, err := http.Get(url)
   if err != nil {
@@ -104,7 +105,7 @@ func getChapterList(_mangaURL string) []string {
 }
 
 func getChapterImages(_mangaTitle string, _mangaChapter string)  {
-  var url string = fmt.Sprintf("https://tcbscans.com%s", _mangaChapter)
+  var url string = fmt.Sprintf("https://tcb-backup.bihar-mirchi.com%s", _mangaChapter)
 
   resp, err := http.Get(url)
   if err != nil {
