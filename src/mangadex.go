@@ -213,7 +213,7 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
   var offset int = 0
   var selectedLanguage string = "en"
 
-  var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
+  var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
   var mangaChapters MangaChapters
 
   resp, err := http.Get(url)
@@ -233,7 +233,7 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
   if mangaChapters.Total > queryLimit {
     for offset < queryLimit {
       offset += 500
-      var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
+      var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
       var mangaChapters2 MangaChapters
 
       resp, err := http.Get(url)
