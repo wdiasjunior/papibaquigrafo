@@ -50,8 +50,10 @@ func fsCreateFile(_fileName string, _dir string, _fileNameNumber int, _fileConte
     } else {
       fileName = fmt.Sprintf("%s/%s.%s", _dir, _coverName, fileExtension)
     }
-  } else {
+  } else if _fileNameNumber < 100 {
     fileName = fmt.Sprintf("%s/0%d.%s", _dir, _fileNameNumber, fileExtension)
+  } else {
+    fileName = fmt.Sprintf("%s/%d.%s", _dir, _fileNameNumber, fileExtension)
   }
   err := ioutil.WriteFile(fileName, _fileContents, 0644)
   if err != nil {

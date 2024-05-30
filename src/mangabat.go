@@ -38,7 +38,7 @@ func mangabat() {
   fmt.Printf("\nDownload completed!\n")
 }
 
-func getMangaMangabat(_mangaID string)  (string, []string) {
+func getMangaMangabat(_mangaID string) (string, []string) {
   var url string = fmt.Sprintf("https://readmangabat.com/read-%s", _mangaID)
 
   resp, err := http.Get(url)
@@ -52,7 +52,7 @@ func getMangaMangabat(_mangaID string)  (string, []string) {
   }
 
   reader := strings.NewReader(string(body))
-	tokenizer := html.NewTokenizer(reader)
+  tokenizer := html.NewTokenizer(reader)
   targetClass := "chapter-name text-nowrap"
   var isInsideH1 = false
 
@@ -104,7 +104,7 @@ func getMangaMangabat(_mangaID string)  (string, []string) {
   return mangaTitle, chapterList
 }
 
-func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string)  {
+func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
   var url string = _mangaChapter
 
   resp, err := http.Get(url)
@@ -117,7 +117,7 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string)  {
     fmt.Println("Could not parse body chapter images")
   }
 
-  regex,_ := regexp.Compile(`https://[a-zA-Z0-9.-]*mkklcdnv[a-zA-Z0-9.-]*/[^ "\n]+`)
+  regex, _ := regexp.Compile(`https://[a-zA-Z0-9.-]*mkklcdnv[a-zA-Z0-9.-]*/[^ "\n]+`)
   regex2, _ := regexp.Compile(`-chap-(\d+(?:\.\d+)?)`)
 
   var chapterImagesListRAW []string = regex.FindAllString(string(body), -1)
@@ -139,7 +139,7 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string)  {
     var chapterImage []byte
     for {
       client := &http.Client{}
-	    req, err := http.NewRequest("GET", chapterImageURL, nil)
+      req, err := http.NewRequest("GET", chapterImageURL, nil)
       if err != nil {
         fmt.Println("Request error. Retrying.")
       }
