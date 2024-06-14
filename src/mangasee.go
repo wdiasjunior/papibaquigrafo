@@ -8,14 +8,16 @@ import (
   "strconv"
   "strings"
   "golang.org/x/net/html"
+  "github.com/go-rod/rod"
+  "github.com/go-rod/rod/lib/launcher"
 )
 
-func mangabat() {
+func mangasee() {
   fmt.Printf("\nEnter the Manga ID: ")
   var mangaID string
   fmt.Scanf("%s", &mangaID)
 
-  mangaTitle, chapterList := getMangaMangabat(mangaID)
+  mangaTitle, chapterList := getMangaMangasee(mangaID)
 
   fmt.Println("\nEnter the range of chapters you want to download\n")
 
@@ -31,29 +33,28 @@ func mangabat() {
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
-      getChapterImagesMangabat(mangaTitle, chapter)
+      getChapterImagesMangasee(mangaTitle, chapter)
     }
   }
 
   fmt.Printf("\nDownload completed!\n")
 }
 
-func getMangaMangabat(_mangaID string) (string, []string) {
-  var url string = fmt.Sprintf("https://readmangabat.com/read-%s", _mangaID)
+func getMangaMangasee(_mangaID string) (string, []string) {
+  var url string = fmt.Sprintf("https://mangasee123.com/manga/%s", _mangaID)
 
-  resp, err := http.Get(url)
+  browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
+  defer browser.MustClose()
+  page := browser.MustPage(url)
+  page.MustWaitLoad().MustWaitIdle()
+  body, err := page.HTML()
   if err != nil {
-    fmt.Println("Could not get chapter list")
-  }
-  defer resp.Body.Close()
-  body, err := ioutil.ReadAll(resp.Body)
-  if err != nil {
-    fmt.Println("Could not parse body chapter list")
+    fmt.Println("Could not get chapter list: ", err)
   }
 
   reader := strings.NewReader(string(body))
   tokenizer := html.NewTokenizer(reader)
-  targetClass := "chapter-name text-nowrap"
+  targetClass := "ChapterLink"
   var isInsideH1 = false
 
   var mangaTitle string
@@ -71,7 +72,9 @@ func getMangaMangabat(_mangaID string) (string, []string) {
           if attr.Key == "class" && strings.Contains(attr.Val, targetClass) {
             for _, attr := range token.Attr {
               if attr.Key == "href" {
-                chapterList = append(chapterList, attr.Val)
+                regex := regexp.MustCompile(`-page-\d+\.html$`)
+                result := regex.ReplaceAllString(attr.Val, "")
+                chapterList = append(chapterList, result)
                 break
               }
             }
@@ -105,32 +108,54 @@ func getMangaMangabat(_mangaID string) (string, []string) {
   return mangaTitle, chapterList
 }
 
-func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
-  var url string = _mangaChapter
+func getChapterImagesMangasee(_mangaTitle string, _mangaChapter string) {
+  var url string = fmt.Sprintf("https://mangasee123.com%s", _mangaChapter)
 
-  resp, err := http.Get(url)
+  browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
+  defer browser.MustClose()
+  page := browser.MustPage(url)
+  page.MustWaitLoad().MustWaitIdle()
+  body, err := page.HTML()
   if err != nil {
-    fmt.Println("Could not get chapter images")
-  }
-  defer resp.Body.Close()
-  body, err := ioutil.ReadAll(resp.Body)
-  if err != nil {
-    fmt.Println("Could not parse body chapter images")
+    fmt.Println("Could not get chapter images: ", err)
   }
 
-  regex, _ := regexp.Compile(`https://[a-zA-Z0-9.-]*mkklcdnv[a-zA-Z0-9.-]*/[^ "\n]+`)
-  regex2, _ := regexp.Compile(`-chap-(\d+(?:\.\d+)?)`)
+  regex, _ := regexp.Compile(`-chapter-([0-9]+(\.[0-9]+)?)`)
 
-  var chapterImagesListRAW []string = regex.FindAllString(string(body), -1)
-
-  mangaChapterNumber := regex2.FindStringSubmatch(_mangaChapter)
+  mangaChapterNumber := regex.FindStringSubmatch(_mangaChapter)
 
   fmt.Println("Downloading chapter: ", mangaChapterNumber[1])
 
   var chapterImagesList = []string{}
-  for _, chapterImageURL := range chapterImagesListRAW {
-    if strings.Contains(chapterImageURL, "chapter") {
-      chapterImagesList = append(chapterImagesList, chapterImageURL)
+
+  reader := strings.NewReader(string(body))
+  tokenizer := html.NewTokenizer(reader)
+  targetClass := "HasGap"
+
+  loop: for {
+    tokenType := tokenizer.Next()
+    switch tokenType {
+    case html.ErrorToken:
+      break loop
+    case html.StartTagToken, html.SelfClosingTagToken:
+      token := tokenizer.Token()
+      if token.Data == "img" {
+        for _, attr := range token.Attr {
+          if attr.Key == "class" && strings.Contains(attr.Val, targetClass) {
+            for _, attr := range token.Attr {
+              if attr.Key == "src" {
+                chapterImagesList = append(chapterImagesList, attr.Val)
+                break
+              }
+            }
+          }
+        }
+      }
+    case html.TextToken:
+      if true {}
+    case html.EndTagToken:
+      token := tokenizer.Token()
+      if token.Data == "img" {}
     }
   }
 
@@ -139,25 +164,12 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
   for i, chapterImageURL := range chapterImagesList {
     var chapterImage []byte
     for {
-      client := &http.Client{}
-      req, err := http.NewRequest("GET", chapterImageURL, nil)
-      if err != nil {
-        fmt.Println("Request error. Retrying.")
-      }
-      req.Header.Set("Referer", "https://readmangabat.com/")
-      // req.Header.Set("referer", "https://h.mangabat.com/")
-      // req.Header.Set("Referer", "https://chapmanganato.com/")
-      // req.Header.Set("Referer", "https://mangakakalot.com/")
-      // req.Header.Set("Referer", "https://manganelo.com/")
-      // req.Header.Set("Referer", "https://readmanganato.com/")
-
-      resp, err := client.Do(req)
+      resp, err := http.Get(chapterImageURL)
       if err != nil {
         fmt.Println("Request error. Retrying.")
       }
       defer resp.Body.Close()
       res, err := ioutil.ReadAll(resp.Body)
-
       if err != nil {
         fmt.Println("Request error. Retrying.")
       } else {

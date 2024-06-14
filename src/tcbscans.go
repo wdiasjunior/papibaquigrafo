@@ -36,6 +36,7 @@ func tcbscans() {
   mangaTitleCapitalized := strings.Title(strings.Replace(mangaTitle, "-", " ", -1))
   fmt.Println("\n")
   fmt.Println(mangaTitleCapitalized)
+  fmt.Println("")
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
