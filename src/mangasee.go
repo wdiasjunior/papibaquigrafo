@@ -7,6 +7,7 @@ import (
   "regexp"
   "strconv"
   "strings"
+  "time"
   "golang.org/x/net/html"
   "github.com/go-rod/rod"
   "github.com/go-rod/rod/lib/launcher"
@@ -47,6 +48,14 @@ func getMangaMangasee(_mangaID string) (string, []string) {
   defer browser.MustClose()
   page := browser.MustPage(url)
   page.MustWaitLoad().MustWaitIdle()
+
+  if page.MustHas("div.ShowAllChapters") {
+    button := page.MustElement("div.ShowAllChapters")
+    button.MustClick()
+    page.MustWaitLoad().MustWaitIdle()
+    time.Sleep(1 * time.Second)
+  }
+
   body, err := page.HTML()
   if err != nil {
     fmt.Println("Could not get chapter list: ", err)
