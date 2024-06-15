@@ -12,10 +12,11 @@ import (
   "bufio"
   "os"
 )
-// if "all" and name null == oneshot (probably) fix empty chapter number and put 0
+
+// TODO - if "all" and name null == oneshot (probably) fix empty chapter number and put 0
 
 func mangadex() {
-  fmt.Printf("Enter the Manga ID: ")
+  fmt.Printf("\nEnter the Manga ID: ")
   var userInput string
   fmt.Scanf("%s", &userInput)
 
@@ -48,9 +49,11 @@ func mangadex() {
   } else {
     mangaTitle = "manga - unknown title"
   }
+  fmt.Println("")
   fmt.Println(mangaTitle)
+  fmt.Println("")
   fmt.Println("Number of chapters: ", len(mangaChapters.Data))
-  fmt.Println("available chapters:")
+  fmt.Println("Available chapters:")
 
   var arr []string
   if len(mangaChapters.Data) == 1 && mangaChapters.Data[0].Attributes.Chapter == nil {

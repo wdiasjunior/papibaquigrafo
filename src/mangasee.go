@@ -20,7 +20,7 @@ func mangasee() {
 
   mangaTitle, chapterList := getMangaMangasee(mangaID)
 
-  fmt.Println("\nEnter the range of chapters you want to download\n")
+  fmt.Println("\nEnter the range of chapters you want to download.")
 
   fmt.Printf("\nInitial chapter: ")
   var userInputFirstChapter string
@@ -31,6 +31,7 @@ func mangasee() {
   var userInputLastChapter string
   fmt.Scanf("%s", &userInputLastChapter)
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
+  fmt.Printf("")
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
@@ -105,6 +106,7 @@ func getMangaMangasee(_mangaID string) (string, []string) {
     }
   }
 
+  fmt.Println("")
   fmt.Println(mangaTitle)
   fmt.Println("")
 

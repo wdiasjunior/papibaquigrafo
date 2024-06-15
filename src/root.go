@@ -5,11 +5,10 @@ import (
 )
 
 // TODO
-// - bubbletea
+// - port to bubbletea?
 // - add language selection in mangadex
-// - add support for mangasee
-// - add support for bato.to
-// - add support for mangafire (ana language selection)
+// - add support for bato.to (and language selection)
+// - add support for mangafire (and language selection)
 
 // different project?
 // tool that searches for scanlation groups annoying images and lists them in a ui to select which to delete

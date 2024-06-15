@@ -19,7 +19,7 @@ func tcbscans() {
 
   chapterList := getChapterList(mangaList[mangaID - 1])
 
-  fmt.Println("\nEnter the range of chapters you want to download\n")
+  fmt.Println("\nEnter the range of chapters you want to download.")
 
   fmt.Printf("\nInitial chapter: ")
   var userInputFirstChapter string
@@ -30,6 +30,7 @@ func tcbscans() {
   var userInputLastChapter string
   fmt.Scanf("%s", &userInputLastChapter)
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
+  fmt.Printf("")
 
   regex, _ := regexp.Compile(`[^/]*$`)
   mangaTitle := regex.FindAllString(mangaList[mangaID - 1], -1)[0]
@@ -96,6 +97,7 @@ func getChapterList(_mangaURL string) []string {
   reverseStringArray(chapterList)
 
   // fmt.Println("Could not parse body manga list")
+  fmt.Println("\nAvailable chapters:")
 
   for i, chapter := range chapterList {
     fmt.Println(fmt.Sprintf("%d - %s", i + 1, chapter))

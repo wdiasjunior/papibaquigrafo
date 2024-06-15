@@ -17,7 +17,7 @@ func mangabat() {
 
   mangaTitle, chapterList := getMangaMangabat(mangaID)
 
-  fmt.Println("\nEnter the range of chapters you want to download\n")
+  fmt.Println("\nEnter the range of chapters you want to download.")
 
   fmt.Printf("\nInitial chapter: ")
   var userInputFirstChapter string
@@ -28,6 +28,7 @@ func mangabat() {
   var userInputLastChapter string
   fmt.Scanf("%s", &userInputLastChapter)
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
+  fmt.Printf("")
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
@@ -93,11 +94,12 @@ func getMangaMangabat(_mangaID string) (string, []string) {
     }
   }
 
+  fmt.Println("")
   fmt.Println(mangaTitle)
   fmt.Println("")
+  fmt.Println("Available chapters:")
 
   reverseStringArray(chapterList)
-
   for i, chapter := range chapterList {
     fmt.Println(fmt.Sprintf("%d - %s", i + 1, chapter))
   }
@@ -145,11 +147,6 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
         fmt.Println("Request error. Retrying.")
       }
       req.Header.Set("Referer", "https://readmangabat.com/")
-      // req.Header.Set("referer", "https://h.mangabat.com/")
-      // req.Header.Set("Referer", "https://chapmanganato.com/")
-      // req.Header.Set("Referer", "https://mangakakalot.com/")
-      // req.Header.Set("Referer", "https://manganelo.com/")
-      // req.Header.Set("Referer", "https://readmanganato.com/")
 
       resp, err := client.Do(req)
       if err != nil {
