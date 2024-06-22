@@ -37,7 +37,7 @@ func mangadex() {
   }
   if len(mangaChapters.Data) == 0 {
     fmt.Println("No chapters available\n")
-    return
+    // return
   }
   var mangaTitle string
   if mangaInfo.Data.Attributes.Title.EN != "" {
