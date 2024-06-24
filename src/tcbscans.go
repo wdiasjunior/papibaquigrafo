@@ -30,7 +30,7 @@ func tcbscans() {
   var userInputLastChapter string
   fmt.Scanf("%s", &userInputLastChapter)
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
-  fmt.Printf("")
+  fmt.Printf("\n")
 
   regex, _ := regexp.Compile(`[^/]*$`)
   mangaTitle := regex.FindAllString(mangaList[mangaID - 1], -1)[0]

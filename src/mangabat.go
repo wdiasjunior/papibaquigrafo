@@ -28,7 +28,7 @@ func mangabat() {
   var userInputLastChapter string
   fmt.Scanf("%s", &userInputLastChapter)
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
-  fmt.Printf("")
+  fmt.Printf("\n")
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
