@@ -2,6 +2,7 @@ package src
 
 import (
   "fmt"
+  beeep "github.com/gen2brain/beeep"
 )
 
 // TODO
@@ -9,6 +10,10 @@ import (
 // - add language selection in mangadex
 // - add support for bato.to (and language selection)
 // - add support for mangafire (and language selection)
+// - add notifications?
+
+// BUGS
+// - mangadex - if chapter name is null or wahtever, skip chapter and want the the end which chapetrs failed
 
 // different project?
 // tool that searches for scanlation groups annoying images and lists them in a ui to select which to delete
@@ -27,6 +32,10 @@ func Execute() {
         fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Mangadex")
         mangadex()
+        err := beeep.Notify("Download Finished", "{MangaTitle} has finished downloading.", "")
+        if err != nil {
+          fmt.Println("Error sending notification.")
+        }
         break loop
       case "2":
         fmt.Println("\x1B[2J\x1B[1;1H")
