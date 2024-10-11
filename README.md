@@ -7,6 +7,7 @@ websites currently supported:
 - mangasee
 - tcb scans
 - mangabat
+- batoto
 
 ## How to run
 

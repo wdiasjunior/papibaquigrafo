@@ -8,7 +8,6 @@ import (
 // TODO
 // - port to bubbletea?
 // - add language selection in mangadex
-// - add support for bato.to (and language selection)
 // - add support for mangafire (and language selection)
 // - add notifications?
 
