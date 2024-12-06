@@ -12,7 +12,7 @@ import (
 // - add notifications?
 
 // BUGS
-// - mangadex - if chapter name is null or wahtever, skip chapter and want the the end which chapetrs failed
+// - mangadex - if chapter name is null or whatever, skip chapter and list at the end which chapters failed
 
 // different project?
 // tool that searches for scanlation groups annoying images and lists them in a ui to select which to delete
@@ -31,6 +31,8 @@ func Execute() {
         fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Mangadex")
         mangadex()
+        // TODO
+        // - top level functions return a result code and the notification is handled here or in another file
         err := beeep.Notify("Download Finished", "{MangaTitle} has finished downloading.", "")
         if err != nil {
           fmt.Println("Error sending notification.")
