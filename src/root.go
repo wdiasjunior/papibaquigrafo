@@ -9,7 +9,7 @@ import (
 // - port to bubbletea?
 // - add language selection in mangadex
 // - add support for mangafire (and language selection)
-// - add notifications?
+// - add notifications
 
 // BUGS
 // - mangadex - if chapter name is null or whatever, skip chapter and list at the end which chapters failed
@@ -18,8 +18,17 @@ import (
 // tool that searches for scanlation groups annoying images and lists them in a ui to select which to delete
 
 func Execute() {
-  fmt.Println("papibaquigrafo.")
-  fmt.Println("Choose an option: \n1: Mangadex \n2: Mangasee \n3: TCB Scans \n4: Bato.to \n5. Mangabat \nquit")
+  fmt.Println(`
+papibaquigrafo.
+
+Choose an option:
+1: Mangadex
+2: Weeb Central
+3: TCB Scans
+4: Bato.to
+5: Mangabat
+6: Quit
+  `)
 
   loop: for {
     fmt.Printf("-> ")
@@ -38,10 +47,15 @@ func Execute() {
           fmt.Println("Error sending notification.")
         }
         break loop
+      // case "2":
+      //   fmt.Println("\x1B[2J\x1B[1;1H")
+      //   fmt.Println("Mangasee")
+      //   mangasee()
+      //   break loop
       case "2":
         fmt.Println("\x1B[2J\x1B[1;1H")
-        fmt.Println("Mangasee")
-        mangasee()
+        fmt.Println("Weeb Central")
+        weebcentral()
         break loop
       case "3":
         fmt.Println("\x1B[2J\x1B[1;1H")
@@ -58,7 +72,7 @@ func Execute() {
         fmt.Println("Mangabat")
         mangabat()
         break loop
-      case "quit":
+      case "6", "quit":
         break loop
       default:
         fmt.Println("Invalid Option")

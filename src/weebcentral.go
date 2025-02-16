@@ -13,12 +13,12 @@ import (
   "github.com/go-rod/rod/lib/launcher"
 )
 
-func mangasee() {
+func weebcentral() {
   fmt.Printf("\nEnter the Manga ID: ")
   var mangaID string
   fmt.Scanf("%s", &mangaID)
 
-  mangaTitle, chapterList := getMangaMangasee(mangaID)
+  mangaTitle, chapterList := getMangaWeebcentral(mangaID)
 
   fmt.Println("\nEnter the range of chapters you want to download.")
 
@@ -35,26 +35,26 @@ func mangasee() {
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
-      getChapterImagesMangasee(mangaTitle, chapter)
+      getChapterImagesWeebcentral(mangaTitle, chapter)
     }
   }
 
   fmt.Printf("\nDownload completed!\n")
 }
 
-func getMangaMangasee(_mangaID string) (string, []string) {
-  var url string = fmt.Sprintf("https://mangasee123.com/manga/%s", _mangaID)
+func getMangaWeebcentral(_mangaID string) (string, []string) {
+  var url string = fmt.Sprintf("https://weebcentral.com/series/%s", _mangaID)
 
   browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
   defer browser.MustClose()
   page := browser.MustPage(url)
   page.MustWaitLoad().MustWaitIdle()
 
-  if page.MustHas("div.ShowAllChapters") {
-    button := page.MustElement("div.ShowAllChapters")
+  if page.MustHas(`button.p-2`) {
+    button := page.MustElement(`button.p-2`)
     button.MustClick()
     page.MustWaitLoad().MustWaitIdle()
-    time.Sleep(1 * time.Second)
+    time.Sleep(2 * time.Second)
   }
 
   body, err := page.HTML()
@@ -64,7 +64,7 @@ func getMangaMangasee(_mangaID string) (string, []string) {
 
   reader := strings.NewReader(string(body))
   tokenizer := html.NewTokenizer(reader)
-  targetClass := "ChapterLink"
+  targetClass := "bg-base-300"
   var isInsideH1 = false
 
   var mangaTitle string
@@ -119,27 +119,55 @@ func getMangaMangasee(_mangaID string) (string, []string) {
   return mangaTitle, chapterList
 }
 
-func getChapterImagesMangasee(_mangaTitle string, _mangaChapter string) {
-  var url string = fmt.Sprintf("https://mangasee123.com%s", _mangaChapter)
+func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
+  var urlChapterNumber string = fmt.Sprintf("%s", _mangaChapter)
+  var urlImages string = fmt.Sprintf("%s%s", _mangaChapter, "/images?is_prev=False&current_page=1&reading_style=long_strip")
 
   browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
   defer browser.MustClose()
-  page := browser.MustPage(url)
+  page := browser.MustPage(urlImages)
   page.MustWaitLoad().MustWaitIdle()
   body, err := page.HTML()
   if err != nil {
     fmt.Println("Could not get chapter images: ", err)
   }
 
-  regex, _ := regexp.Compile(`-chapter-([0-9]+(\.[0-9]+)?)`)
-  mangaChapterNumber := regex.FindStringSubmatch(_mangaChapter)
-  fmt.Println("Downloading chapter: ", mangaChapterNumber[1])
+  chapterTargetClass := "button.col-span-4"
+  var mangaChapterNumber = []string{}
+  {
+    browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
+    defer browser.MustClose()
+    page := browser.MustPage(urlChapterNumber)
+    page.MustWaitLoad().MustWaitIdle()
+
+    var innerText string = ""
+
+    _, err := page.HTML()
+    if err != nil {
+      fmt.Println("Could not get chapter images: ", err)
+    }
+
+    if page.MustHas(chapterTargetClass) {
+      elements := page.MustElements(chapterTargetClass)
+
+      if len(elements) > 0 {
+        innerText = elements[0].MustText()
+      }
+    } else {
+      fmt.Println("Debug - Could not find element with class:", chapterTargetClass)
+    }
+
+    regex := regexp.MustCompile(`\d+(\.\d+)?$`)
+    mangaChapterNumber = regex.FindStringSubmatch(innerText)
+  }
+
+  fmt.Println("Downloading chapter: ", mangaChapterNumber[0])
 
   var chapterImagesList = []string{}
 
   reader := strings.NewReader(string(body))
   tokenizer := html.NewTokenizer(reader)
-  targetClass := "HasGap"
+  imgTargetClass := "maw-w-full"
 
   loop: for {
     tokenType := tokenizer.Next()
@@ -150,7 +178,7 @@ func getChapterImagesMangasee(_mangaTitle string, _mangaChapter string) {
       token := tokenizer.Token()
       if token.Data == "img" {
         for _, attr := range token.Attr {
-          if attr.Key == "class" && strings.Contains(attr.Val, targetClass) {
+          if attr.Key == "class" && strings.Contains(attr.Val, imgTargetClass) {
             for _, attr := range token.Attr {
               if attr.Key == "src" {
                 chapterImagesList = append(chapterImagesList, attr.Val)
@@ -168,7 +196,7 @@ func getChapterImagesMangasee(_mangaTitle string, _mangaChapter string) {
     }
   }
 
-  dir := fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, mangaChapterNumber[1])
+  dir := fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, mangaChapterNumber[0])
   _dir := fsCreateDir(dir, false)
   for i, chapterImageURL := range chapterImagesList {
     var chapterImage []byte
