@@ -154,7 +154,7 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
         innerText = elements[0].MustText()
       }
     } else {
-      fmt.Println("Debug - Could not find element with class:", chapterTargetClass)
+      fmt.Println("Could not find chapter number element.") // TODO - if it fails, run a loop
     }
 
     regex := regexp.MustCompile(`\d+(\.\d+)?$`)
