@@ -134,31 +134,38 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
 
   chapterTargetClass := "button.col-span-4"
   var mangaChapterNumber = []string{}
+
   {
-    browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
-    defer browser.MustClose()
-    page := browser.MustPage(urlChapterNumber)
-    page.MustWaitLoad().MustWaitIdle()
+    for {
+      browser := rod.New().ControlURL(launcher.New().Headless(true).MustLaunch()).MustConnect()
+      defer browser.MustClose()
+      page := browser.MustPage(urlChapterNumber)
+      page.MustWaitLoad().MustWaitIdle()
 
-    var innerText string = ""
+      var innerText string = ""
 
-    _, err := page.HTML()
-    if err != nil {
-      fmt.Println("Could not get chapter images: ", err)
-    }
-
-    if page.MustHas(chapterTargetClass) {
-      elements := page.MustElements(chapterTargetClass)
-
-      if len(elements) > 0 {
-        innerText = elements[0].MustText()
+      _, err := page.HTML()
+      if err != nil {
+        fmt.Println("Could not get chapter images: ", err)
       }
-    } else {
-      fmt.Println("Could not find chapter number element.") // TODO - if it fails, run a loop
-    }
 
-    regex := regexp.MustCompile(`\d+(\.\d+)?$`)
-    mangaChapterNumber = regex.FindStringSubmatch(innerText)
+      if page.MustHas(chapterTargetClass) {
+        elements := page.MustElements(chapterTargetClass)
+
+        if len(elements) > 0 {
+          innerText = elements[0].MustText()
+        }
+      } else {
+        fmt.Println("Could not find chapter number element.")
+      }
+
+      regex := regexp.MustCompile(`\d+(\.\d+)?$`)
+      mangaChapterNumber = regex.FindStringSubmatch(innerText)
+
+      if len(mangaChapterNumber) > 0 {
+        break
+      }
+    }
   }
 
   fmt.Println("Downloading chapter: ", mangaChapterNumber[0])
@@ -198,14 +205,31 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
 
   dir := fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, mangaChapterNumber[0])
   _dir := fsCreateDir(dir, false)
+
+  client := &http.Client{}
+
   for i, chapterImageURL := range chapterImagesList {
     var chapterImage []byte
     for {
-      resp, err := http.Get(chapterImageURL)
+      req, err := http.NewRequest("GET", chapterImageURL, nil)
       if err != nil {
-        fmt.Println("Request error. Retrying.")
+        fmt.Println("Error creating request:", err)
+        continue
+      }
+
+      req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+      req.Header.Set("Referer", "https://weebcentral.com/")
+      req.Header.Set("x-referer", "https://weebcentral.com/")
+      req.Header.Set("Accept", "image/*")
+      req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+
+      resp, err := client.Do(req)
+      if err != nil {
+        fmt.Println("Request error:", err)
+        continue
       }
       defer resp.Body.Close()
+
       res, err := ioutil.ReadAll(resp.Body)
       if err != nil {
         fmt.Println("Request error. Retrying.")
@@ -214,6 +238,9 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
         break
       }
     }
+
     fsCreateFile(chapterImageURL, _dir, i + 1, chapterImage, false, "")
+
+    // time.Sleep(1 * time.Second) // in case I need to debugg this goddamn website blocking requests again
   }
 }
