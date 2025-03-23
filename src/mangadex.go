@@ -13,8 +13,6 @@ import (
   "os"
 )
 
-// TODO - if "all" and name null == oneshot (probably) fix empty chapter number and put 0
-
 func mangadex() {
   fmt.Printf("\nEnter the Manga ID: ")
   var userInput string
@@ -70,6 +68,7 @@ func mangadex() {
     }
   }
 
+  // TODO - add range of chapters option
   fmt.Println("\nEnter the chapters you want to download\n")
   fmt.Println("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'oneshot', 'covers', 'quit'\n")
   loop: for {
@@ -315,6 +314,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
       }
 
       if len(mangaChapterImages.Chapter.Data) > 0 {
+        // TODO - if "all" option, and name == nil then it is probably a oneshot. fix empty chapter number and set it to 0?
         var dir string
         if _singleFolder {
           dir = fmt.Sprintf("downloads/%s", _mangaTitle)
