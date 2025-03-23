@@ -65,12 +65,6 @@ func mangadex() {
       }
     }
 
-    sort.Slice(arr, func(i, j int) bool {
-      numA, _ := strconv.ParseFloat(arr[i], 64)
-      numB, _ := strconv.ParseFloat(arr[j], 64)
-      return numA < numB
-    })
-
     for _, i := range arr {
       fmt.Println(i)
     }
@@ -155,7 +149,7 @@ type MangaCoversData struct {
 }
 
 func getMangaCovers(_mangaTitle string , _mangaId string) {
-  // TODO - this breaks on one piece - 108 covers
+  // TODO - this breaks on one piece - 100+ covers
   var _limit = 100
   var url string = fmt.Sprintf("https://api.mangadex.org/cover?limit=%d&manga[]=%s&order[createdAt]=asc&order[updatedAt]=asc&order[volume]=asc", _limit, _mangaId)
   var mangaCoversData MangaCoversData
@@ -256,6 +250,22 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
       mangaChapters.Data = append(mangaChapters.Data, mangaChapters2.Data...)
     }
   }
+
+  sort.Slice(mangaChapters.Data, func(i, j int) bool {
+    var chapterA, chapterB string
+
+    if mangaChapters.Data[i].Attributes.Chapter != nil {
+      chapterA = *mangaChapters.Data[i].Attributes.Chapter
+    }
+    if mangaChapters.Data[j].Attributes.Chapter != nil {
+      chapterB = *mangaChapters.Data[j].Attributes.Chapter
+    }
+
+    numA, _ := strconv.ParseFloat(chapterA, 64)
+    numB, _ := strconv.ParseFloat(chapterB, 64)
+
+    return numA < numB
+  })
 
   return mangaChapters, nil
 }
