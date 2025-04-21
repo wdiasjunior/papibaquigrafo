@@ -176,6 +176,7 @@ func getMangaCovers(_mangaTitle string , _mangaId string) {
         resp, err := http.Get(url)
         if err != nil {
           fmt.Println("Request error. Retrying.")
+          continue
         }
         defer resp.Body.Close()
         res, err := ioutil.ReadAll(resp.Body)
@@ -300,6 +301,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
         resp, err := http.Get(url)
         if err != nil {
           fmt.Println("Request error. Retrying.")
+          continue
         }
         defer resp.Body.Close()
         body, err := ioutil.ReadAll(resp.Body)
@@ -337,6 +339,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
             resp, err := http.Get(url)
             if err != nil {
               fmt.Println("Request error. Retrying.")
+              continue
             }
             defer resp.Body.Close()
             res, err := ioutil.ReadAll(resp.Body)

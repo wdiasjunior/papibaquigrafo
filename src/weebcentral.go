@@ -229,7 +229,6 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
         continue
       }
       defer resp.Body.Close()
-
       res, err := ioutil.ReadAll(resp.Body)
       if err != nil {
         fmt.Println("Request error. Retrying.")

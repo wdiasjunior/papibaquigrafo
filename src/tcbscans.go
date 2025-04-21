@@ -140,6 +140,7 @@ func getChapterImages(_mangaTitle string, _mangaChapter string)  {
         resp, err := http.Get(chapterImageURL)
         if err != nil {
           fmt.Println("Request error. Retrying.")
+          continue
         }
         defer resp.Body.Close()
         res, err := ioutil.ReadAll(resp.Body)

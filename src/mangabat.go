@@ -151,6 +151,7 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
       resp, err := client.Do(req)
       if err != nil {
         fmt.Println("Request error. Retrying.")
+        continue
       }
       defer resp.Body.Close()
       res, err := ioutil.ReadAll(resp.Body)
