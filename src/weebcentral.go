@@ -132,7 +132,7 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
     fmt.Println("Could not get chapter images: ", err)
   }
 
-  chapterTargetClass := "button.col-span-4"
+  chapterTargetClass := "button.col-span-3"
   var mangaChapterNumber = []string{}
 
   {
@@ -222,6 +222,7 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
       req.Header.Set("x-referer", "https://weebcentral.com/")
       req.Header.Set("Accept", "image/*")
       req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+      req.Header.Set("Host", "official.lowee.us")
 
       resp, err := client.Do(req)
       if err != nil {
