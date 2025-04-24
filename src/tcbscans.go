@@ -49,7 +49,7 @@ func tcbscans() {
 }
 
 func getMangaList() []string {
-  var url string = "https://tcbscans.me/projects"
+  var url string = "https://tcbonepiecechapters.com/projects"
 
   resp, err := http.Get(url)
   if err != nil {
@@ -79,7 +79,7 @@ func getMangaList() []string {
 }
 
 func getChapterList(_mangaURL string) []string {
-  var url string = fmt.Sprintf("https://tcbscans.me%s", _mangaURL)
+  var url string = fmt.Sprintf("https://tcbonepiecechapters.com%s", _mangaURL)
 
   resp, err := http.Get(url)
   if err != nil {
@@ -107,7 +107,7 @@ func getChapterList(_mangaURL string) []string {
 }
 
 func getChapterImages(_mangaTitle string, _mangaChapter string)  {
-  var url string = fmt.Sprintf("https://tcbscans.me%s", _mangaChapter)
+  var url string = fmt.Sprintf("https://tcbonepiecechapters.com%s", _mangaChapter)
 
   resp, err := http.Get(url)
   if err != nil {
