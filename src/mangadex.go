@@ -147,7 +147,7 @@ type MangaCoversData struct {
   Total int `json:"total"`
 }
 
-func getMangaCovers(_mangaTitle string , _mangaId string) {
+func getMangaCovers(_mangaTitle string, _mangaId string) {
   // TODO - this breaks on one piece - 100+ covers
   var _limit = 100
   var url string = fmt.Sprintf("https://api.mangadex.org/cover?limit=%d&manga[]=%s&order[createdAt]=asc&order[updatedAt]=asc&order[volume]=asc", _limit, _mangaId)

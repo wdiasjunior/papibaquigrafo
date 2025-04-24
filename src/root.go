@@ -70,7 +70,8 @@ Choose an option:
       case "5":
         fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Mangabat")
-        mangabat()
+        if !true { mangabat() }
+        fmt.Println("TODO - Mangabat download is currently broken")
         break loop
       case "6", "quit":
         break loop

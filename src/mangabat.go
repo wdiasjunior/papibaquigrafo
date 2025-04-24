@@ -10,6 +10,8 @@ import (
   "golang.org/x/net/html"
 )
 
+// TODO - broken since the site changed domains
+
 func mangabat() {
   fmt.Printf("\nEnter the Manga ID: ")
   var mangaID string
@@ -40,7 +42,7 @@ func mangabat() {
 }
 
 func getMangaMangabat(_mangaID string) (string, []string) {
-  var url string = fmt.Sprintf("https://readmangabat.com/read-%s", _mangaID)
+  var url string = fmt.Sprintf("https://www.mangabats.com/manga/%s", _mangaID)
 
   resp, err := http.Get(url)
   if err != nil {
@@ -54,7 +56,7 @@ func getMangaMangabat(_mangaID string) (string, []string) {
 
   reader := strings.NewReader(string(body))
   tokenizer := html.NewTokenizer(reader)
-  targetClass := "chapter-name text-nowrap"
+  targetClass := "chapter-list" // container class .chapter-list .row span a
   var isInsideH1 = false
 
   var mangaTitle string
@@ -121,6 +123,7 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
   }
 
   regex, _ := regexp.Compile(`https://[a-zA-Z0-9.-]*mkklcdnv[a-zA-Z0-9.-]*/[^ "\n]+`)
+  // https://imgs-2.2xstorage.com/ // cdn
   regex2, _ := regexp.Compile(`-chap-(\d+(?:\.\d+)?)`)
 
   var chapterImagesListRAW []string = regex.FindAllString(string(body), -1)
@@ -146,7 +149,7 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter string) {
       if err != nil {
         fmt.Println("Request error. Retrying.")
       }
-      req.Header.Set("Referer", "https://readmangabat.com/")
+      req.Header.Set("Referer", "https://www.mangabats.com/")
 
       resp, err := client.Do(req)
       if err != nil {
