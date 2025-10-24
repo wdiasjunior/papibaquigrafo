@@ -71,7 +71,12 @@ func getMangaList() []string {
     if i % 2 == 0 {
       mangaList = append(mangaList, manga)
       mangaTitle := regex2.FindStringSubmatch(manga)
-      fmt.Println(fmt.Sprintf("%d - %s", (i / 2 + 1), mangaTitle[1]))
+      listId := i / 2 + 1
+      if listId < 10 {
+        fmt.Println(fmt.Sprintf("%d  - %s", (listId), mangaTitle[1]))
+      } else {
+        fmt.Println(fmt.Sprintf("%d - %s", (listId), mangaTitle[1]))
+      }
     }
   }
 
