@@ -55,50 +55,51 @@ Choose an option:
 1: Mangadex
 2: Weeb Central
 3: TCB Scans
-4: Bato.to
-5: Mangabat
-6: Quit
+4: MangaFire
+5: Kagane
+6: Mangabat
+7: Quit
   `)
 
   loop: for {
     fmt.Printf("-> ")
     var userInput string
     fmt.Scanf("%s", &userInput)
+    fmt.Println("\x1B[2J\x1B[1;1H")
 
     switch userInput {
       case "1":
-        fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Mangadex")
         mangadex()
-        // TODO
-        // - top level functions should return a result code and the notification is handled here or in another file
+        // TODO - top level functions for each connector should return a result code and the notification is handled here or in another file
         err := beeep.Notify("Download Finished", "{MangaTitle} has finished downloading.", "")
         if err != nil {
           fmt.Println("Error sending notification.")
         }
         break loop
       case "2":
-        fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("Weeb Central")
         weebcentral()
         break loop
       case "3":
-        fmt.Println("\x1B[2J\x1B[1;1H")
         fmt.Println("TCB Scans\n")
         tcbscans()
         break loop
       case "4":
-        fmt.Println("\x1B[2J\x1B[1;1H")
-        fmt.Println("Bato.to")
-        batoto()
+        fmt.Println("MangaFire")
+        mangafire()
         break loop
       case "5":
-        fmt.Println("\x1B[2J\x1B[1;1H")
+        fmt.Println("Kagane")
+        if !true { kagane() }
+        fmt.Println("TODO - Kagane has not been implemented yet")
+        break loop
+      case "6":
         fmt.Println("Mangabat")
         if !true { mangabat() }
         fmt.Println("TODO - Mangabat download is currently broken")
         break loop
-      case "6", "quit":
+      case "7", "quit":
         break loop
       default:
         fmt.Println("Invalid Option")

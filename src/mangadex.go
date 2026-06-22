@@ -18,7 +18,7 @@ func mangadex() {
   var userInput string
   fmt.Scanf("%s", &userInput)
 
-  mangaInfo, err := getManga(userInput)
+  mangaInfo, err := getMangaMangadex(userInput)
   if err != nil {
     fmt.Println(err)
     return
@@ -28,7 +28,7 @@ func mangadex() {
     return
   }
 
-  mangaChapters, err := getMangaChapters(mangaInfo)
+  mangaChapters, err := getMangaChaptersMangadex(mangaInfo)
   if err != nil {
     fmt.Println(err)
     return
@@ -79,28 +79,28 @@ func mangadex() {
 
     switch userInput {
       case "all":
-        getMangaChapterImages(mangaTitle, mangaChapters, "", false)
+        getMangaChapterImagesMangadex(mangaTitle, mangaChapters, "", false)
         break loop
       case "asf":
-        getMangaChapterImages(mangaTitle, mangaChapters, "", true)
+        getMangaChapterImagesMangadex(mangaTitle, mangaChapters, "", true)
         break loop
       case "oneshot":
-        getMangaChapterImages(mangaTitle, mangaChapters, "oneshot", true)
+        getMangaChapterImagesMangadex(mangaTitle, mangaChapters, "oneshot", true)
         break loop
       case "covers":
-        getMangaCovers(mangaTitle, mangaInfo.Data.ID)
+        getMangaCoversMangadex(mangaTitle, mangaInfo.Data.ID)
         break loop
       case "quit":
         break loop
       default:
-        getMangaChapterImages(mangaTitle, mangaChapters, userInput, false)
+        getMangaChapterImagesMangadex(mangaTitle, mangaChapters, userInput, false)
     }
     break loop
   }
   fmt.Printf("\nDownload completed!\n")
 }
 
-type MangaData struct {
+type MangaDataMangadex struct {
   Result string `json:"result"`
   Data struct {
     ID string `json:"id"`
@@ -115,9 +115,9 @@ type MangaData struct {
   } `json:"data"`
 }
 
-func getManga(_mangaId string) (MangaData, error) {
+func getMangaMangadex(_mangaId string) (MangaDataMangadex, error) {
   var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s", _mangaId)
-  var mangaData MangaData
+  var mangaData MangaDataMangadex
 
   resp, err := http.Get(url)
   if err != nil {
@@ -135,7 +135,7 @@ func getManga(_mangaId string) (MangaData, error) {
   return mangaData, nil
 }
 
-type MangaCoversData struct {
+type MangaCoversDataMangadex struct {
   Result string `json:"result"`
   Data []struct {
     Attributes struct {
@@ -147,11 +147,13 @@ type MangaCoversData struct {
   Total int `json:"total"`
 }
 
-func getMangaCovers(_mangaTitle string, _mangaId string) {
-  // TODO - this breaks on one piece - 100+ covers
+func getMangaCoversMangadex(_mangaTitle string, _mangaId string) {
+  // TODO
+  // - this breaks on one piece - 100+ covers
+  // - automate saving covers in the first chapter of their respective volume
   var _limit = 100
   var url string = fmt.Sprintf("https://api.mangadex.org/cover?limit=%d&manga[]=%s&order[createdAt]=asc&order[updatedAt]=asc&order[volume]=asc", _limit, _mangaId)
-  var mangaCoversData MangaCoversData
+  var mangaCoversData MangaCoversDataMangadex
 
   resp, err := http.Get(url)
   if err != nil {
@@ -194,7 +196,7 @@ func getMangaCovers(_mangaTitle string, _mangaId string) {
   }
 }
 
-type MangaChapters struct {
+type MangaChaptersMangadex struct {
   Result string `json:"result"`
   Data []struct {
     ID string `json:"id"`
@@ -206,13 +208,13 @@ type MangaChapters struct {
   Total int `json:"total"`
 }
 
-func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
+func getMangaChaptersMangadex(_mangaInfo MangaDataMangadex) (MangaChaptersMangadex, error) {
   var queryLimit int = 500
   var offset int = 0
   var selectedLanguage string = "en"
 
   var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
-  var mangaChapters MangaChapters
+  var mangaChapters MangaChaptersMangadex
 
   resp, err := http.Get(url)
   if err != nil {
@@ -232,7 +234,7 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
     for offset < queryLimit {
       offset += 500
       var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
-      var mangaChapters2 MangaChapters
+      var mangaChapters2 MangaChaptersMangadex
 
       resp, err := http.Get(url)
       if err != nil {
@@ -270,7 +272,7 @@ func getMangaChapters(_mangaInfo MangaData) (MangaChapters, error) {
   return mangaChapters, nil
 }
 
-type MangaImages struct {
+type MangaImagesMangadex struct {
   Result string `json:"result"`
   Chapter struct {
     Hash string `json:"hash"`
@@ -278,7 +280,7 @@ type MangaImages struct {
   } `json:"chapter"`
 }
 
-func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _userInput string, _singleFolder bool) {
+func getMangaChapterImagesMangadex(_mangaTitle string, _mangaChapters MangaChaptersMangadex, _userInput string, _singleFolder bool) {
   fmt.Println("\nStarting Download")
 
   userInput := strings.Split(_userInput, " ")
@@ -295,7 +297,7 @@ func getMangaChapterImages(_mangaTitle string, _mangaChapters MangaChapters, _us
     }
     if (contains(userInput, chapterNameNoNIL, _userInput == "oneshot")) || (_userInput == "oneshot") || (_userInput == "") {
       var url string = fmt.Sprintf("https://api.mangadex.org/at-home/server/%s", _mangaChapters.Data[i].ID)
-      var mangaChapterImages MangaImages
+      var mangaChapterImages MangaImagesMangadex
 
       for {
         resp, err := http.Get(url)

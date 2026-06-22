@@ -1,14 +1,13 @@
 # papibaquigrafo
 
-papibaquigrafo is a cli tool for personal use written in Go to download manga.
+papibaquigrafo is a cli tool for personal use written in Go to download manga. You probably shouldn't use this since there's better tools around. I made this so that it fits my use case.
 
-websites currently supported:
+Websites currently supported:
 - mangadex
-- mangasee (deprecated)
 - weebcentral
 - tcb scans
-- mangabat
-- batoto
+- mangafire
+- mangabat (currently broken)
 
 ## How to run
 
