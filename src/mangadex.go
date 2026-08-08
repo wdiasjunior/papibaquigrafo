@@ -13,7 +13,7 @@ import (
   "os"
 )
 
-func mangadex() {
+func mangadex() DownloadResult {
   fmt.Printf("\nEnter the Manga ID: ")
   var userInput string
   fmt.Scanf("%s", &userInput)
@@ -21,17 +21,17 @@ func mangadex() {
   mangaInfo, err := getMangaMangadex(userInput)
   if err != nil {
     fmt.Println(err)
-    return
+    return downloadFailed("", err.Error())
   }
   if mangaInfo.Result != "ok" {
     fmt.Println(mangaInfo.Result)
-    return
+    return downloadFailed("", mangaInfo.Result)
   }
 
   mangaChapters, err := getMangaChaptersMangadex(mangaInfo)
   if err != nil {
     fmt.Println(err)
-    return
+    return downloadFailed("", err.Error())
   }
   if len(mangaChapters.Data) == 0 {
     fmt.Println("No chapters available\n")
@@ -71,6 +71,7 @@ func mangadex() {
   // TODO - add range of chapters option
   fmt.Println("\nEnter the chapters you want to download\n")
   fmt.Println("Options: 'all', 'asf (all chapters in a single folder)', 'chapter numbers separated by spaces', 'oneshot', 'covers', 'quit'\n")
+  cancelled := false
   loop: for {
     fmt.Printf("-> ")
     _input := bufio.NewReader(os.Stdin)
@@ -91,13 +92,23 @@ func mangadex() {
         getMangaCoversMangadex(mangaTitle, mangaInfo.Data.ID)
         break loop
       case "quit":
+        cancelled = true
         break loop
       default:
         getMangaChapterImagesMangadex(mangaTitle, mangaChapters, userInput, false)
     }
     break loop
   }
+
+  if cancelled {
+    return downloadCancelled()
+  }
+
   fmt.Printf("\nDownload completed!\n")
+
+  // Mangadex downloads every selected chapter inside one call, so there is no
+  // per chapter count to report here
+  return downloadSuccess(mangaTitle, 0)
 }
 
 type MangaDataMangadex struct {
@@ -167,7 +178,7 @@ func getMangaCoversMangadex(_mangaTitle string, _mangaId string) {
   if err := json.Unmarshal(body, &mangaCoversData); err != nil {
     fmt.Println("Could not unmarshal JSON")
   }
-  var dir string = fmt.Sprintf("downloads/%s", _mangaTitle)
+  var dir string = fmt.Sprintf("%s/%s", downloadsRoot, _mangaTitle)
   _dir := fsCreateDir(dir, true)
   for _, cover := range mangaCoversData.Data {
     // skip covers that are not en or jp
@@ -321,14 +332,14 @@ func getMangaChapterImagesMangadex(_mangaTitle string, _mangaChapters MangaChapt
         // TODO - if "all" option, and name == nil then it is probably a oneshot. fix empty chapter number and set it to 0?
         var dir string
         if _singleFolder {
-          dir = fmt.Sprintf("downloads/%s", _mangaTitle)
+          dir = fmt.Sprintf("%s/%s", downloadsRoot, _mangaTitle)
         } else if _userInput == "oneshot" {
-          dir = fmt.Sprintf("downloads/%s/Oneshot", _mangaTitle)
+          dir = fmt.Sprintf("%s/%s/Oneshot", downloadsRoot, _mangaTitle)
         } else {
           if _mangaChapters.Data[i].Attributes.Title != nil && len(*_mangaChapters.Data[i].Attributes.Title) > 0 {
-            dir = fmt.Sprintf("downloads/%s/Ch.%s - %s", _mangaTitle, chapterNameNoNIL, *_mangaChapters.Data[i].Attributes.Title)
+            dir = fmt.Sprintf("%s/%s/Ch.%s - %s", downloadsRoot, _mangaTitle, chapterNameNoNIL, *_mangaChapters.Data[i].Attributes.Title)
           } else {
-            dir = fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, chapterNameNoNIL)
+            dir = fmt.Sprintf("%s/%s/Ch.%s", downloadsRoot, _mangaTitle, chapterNameNoNIL)
           }
         }
         fmt.Println("Downloading chapter: ", chapterNameNoNIL)

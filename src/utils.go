@@ -33,7 +33,7 @@ func reverseStringArray(arr []string) {
   }
 }
 
-func reverseStructStringArray(arr []ChapterBatoto) {
+func reverseStructStringArray(arr []string) {
   n := len(arr)
 
   for i := 0; i < n/2; i++ {

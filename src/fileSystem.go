@@ -7,6 +7,8 @@ import (
   "io/ioutil"
 )
 
+var downloadsRoot = "/run/media/wjr/weeb/papibaquigrafo"
+
 func fsCreateDir(_dir string, _singleFolder bool) string {
   if _singleFolder {
     if _, err := os.Stat(_dir); os.IsNotExist(err) {

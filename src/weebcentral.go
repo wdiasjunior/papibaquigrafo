@@ -13,12 +13,17 @@ import (
   "github.com/go-rod/rod/lib/launcher"
 )
 
-func weebcentral() {
+func weebcentral() DownloadResult {
   fmt.Printf("\nEnter the Manga ID: ")
   var mangaID string
   fmt.Scanf("%s", &mangaID)
 
   mangaTitle, chapterList := getMangaWeebcentral(mangaID)
+
+  if len(chapterList) == 0 {
+    fmt.Println("\nNo chapters available.")
+    return downloadFailed(mangaTitle, "No chapters available.")
+  }
 
   fmt.Println("\nEnter the range of chapters you want to download.")
 
@@ -33,13 +38,22 @@ func weebcentral() {
   lastChapter, _ := strconv.Atoi(userInputLastChapter)
   fmt.Printf("\n")
 
+  downloaded := 0
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
       getChapterImagesWeebcentral(mangaTitle, chapter)
+      downloaded++
     }
   }
 
+  if downloaded == 0 {
+    fmt.Printf("\nNo chapters in the selected range.\n")
+    return downloadFailed(mangaTitle, "No chapters in the selected range.")
+  }
+
   fmt.Printf("\nDownload completed!\n")
+
+  return downloadSuccess(mangaTitle, downloaded)
 }
 
 func getMangaWeebcentral(_mangaID string) (string, []string) {
@@ -84,7 +98,7 @@ func getMangaWeebcentral(_mangaID string) (string, []string) {
               if attr.Key == "href" {
                 regex := regexp.MustCompile(`-page-\d+\.html$`)
                 result := regex.ReplaceAllString(attr.Val, "")
-                chapterList = append(chapterList, result)
+                chapterList = append(chapterList, fmt.Sprintf("https://weebcentral.com%s", result))
                 break
               }
             }
@@ -174,7 +188,7 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
 
   reader := strings.NewReader(string(body))
   tokenizer := html.NewTokenizer(reader)
-  imgTargetClass := "maw-w-full"
+  imgTargetClass := "max-w-full"
 
   loop: for {
     tokenType := tokenizer.Next()
@@ -203,7 +217,7 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
     }
   }
 
-  dir := fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, mangaChapterNumber[0])
+  dir := fmt.Sprintf("%s/%s/Ch.%s", downloadsRoot, _mangaTitle, mangaChapterNumber[0])
   _dir := fsCreateDir(dir, false)
 
   client := &http.Client{}

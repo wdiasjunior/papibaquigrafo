@@ -14,13 +14,18 @@ import (
   "github.com/go-rod/rod/lib/launcher"
 )
 
-func mangafire() {
+func mangafire() DownloadResult {
   fmt.Printf("\nEnter the Manga ID: ")
   var mangaID string
   fmt.Scanf("%s", &mangaID)
 
   // Fetch English chapter list first to get the title and available languages
   mangaTitle, _, availableLanguages := getMangaMangaFire(mangaID, "en")
+
+  if len(availableLanguages) == 0 {
+    fmt.Println("\nNo languages available.")
+    return downloadFailed(mangaTitle, "No languages available.")
+  }
 
   // Show available languages and let the user pick
   fmt.Println("\nAvailable languages:")
@@ -34,13 +39,18 @@ func mangafire() {
   langIndex, _ := strconv.Atoi(langInput)
   if langIndex < 1 || langIndex > len(availableLanguages) {
     fmt.Println("Invalid selection.")
-    return
+    return downloadFailed(mangaTitle, "Invalid language selection.")
   }
   selectedLang := availableLanguages[langIndex - 1]
   langCode := strings.ToLower(selectedLang.Code)
 
   // Fetch chapter list for the selected language
   _, chapterList, _ := getMangaMangaFire(mangaID, langCode)
+
+  if len(chapterList) == 0 {
+    fmt.Println("\nNo chapters available.")
+    return downloadFailed(mangaTitle, "No chapters available.")
+  }
 
   fmt.Println("\nEnter the range of chapters you want to download.")
 
@@ -61,13 +71,22 @@ func mangafire() {
     langSuffix = selectedLang.Code
   }
 
+  downloaded := 0
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
       getChapterImagesMangaFire(mangaTitle, chapter, langSuffix)
+      downloaded++
     }
   }
 
+  if downloaded == 0 {
+    fmt.Printf("\nNo chapters in the selected range.\n")
+    return downloadFailed(mangaTitle, "No chapters in the selected range.")
+  }
+
   fmt.Printf("\nDownload completed!\n")
+
+  return downloadSuccess(mangaTitle, downloaded)
 }
 
 type ChapterMangaFire struct {
@@ -376,9 +395,9 @@ func getChapterImagesMangaFire(_mangaTitle string, _mangaChapter ChapterMangaFir
   normalizedTitle := strings.ReplaceAll(_mangaTitle, ":", "-")
   var dir string
   if _langSuffix != "" {
-    dir = fmt.Sprintf("downloads/%s [%s]/%s", normalizedTitle, _langSuffix, chapterFolder)
+    dir = fmt.Sprintf("%s/%s [%s]/%s", downloadsRoot, normalizedTitle, _langSuffix, chapterFolder)
   } else {
-    dir = fmt.Sprintf("downloads/%s/%s", normalizedTitle, chapterFolder)
+    dir = fmt.Sprintf("%s/%s/%s", downloadsRoot, normalizedTitle, chapterFolder)
   }
   _dir := fsCreateDir(dir, false)
 

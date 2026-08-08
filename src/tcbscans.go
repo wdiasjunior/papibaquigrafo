@@ -9,7 +9,7 @@ import (
   "strings"
 )
 
-func tcbscans() {
+func tcbscans() DownloadResult {
   mangaList := getMangaList()
 
   fmt.Printf("\nEnter the Manga ID: ")
@@ -17,7 +17,17 @@ func tcbscans() {
   fmt.Scanf("%s", &userInput)
   mangaID, _ := strconv.Atoi(userInput)
 
+  if mangaID < 1 || mangaID > len(mangaList) {
+    fmt.Println("\nInvalid selection.")
+    return downloadFailed("", "Invalid selection.")
+  }
+
   chapterList := getChapterList(mangaList[mangaID - 1])
+
+  if len(chapterList) == 0 {
+    fmt.Println("\nNo chapters available.")
+    return downloadFailed("", "No chapters available.")
+  }
 
   fmt.Println("\nEnter the range of chapters you want to download.")
 
@@ -39,13 +49,22 @@ func tcbscans() {
   fmt.Println(mangaTitleCapitalized)
   fmt.Println("")
 
+  downloaded := 0
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
       getChapterImages(mangaTitleCapitalized, chapter)
+      downloaded++
     }
   }
 
+  if downloaded == 0 {
+    fmt.Printf("\nNo chapters in the selected range.\n")
+    return downloadFailed(mangaTitleCapitalized, "No chapters in the selected range.")
+  }
+
   fmt.Printf("\nDownload completed!\n")
+
+  return downloadSuccess(mangaTitleCapitalized, downloaded)
 }
 
 func getMangaList() []string {
@@ -133,7 +152,7 @@ func getChapterImages(_mangaTitle string, _mangaChapter string)  {
 
   fmt.Println("Downloading chapter: ", mangaChapterNumber[1])
 
-  dir := fmt.Sprintf("downloads/%s/Ch.%s", _mangaTitle, mangaChapterNumber[1])
+  dir := fmt.Sprintf("%s/%s/Ch.%s", downloadsRoot, _mangaTitle, mangaChapterNumber[1])
   _dir := fsCreateDir(dir, false)
 
   for i, chapterImageURL := range chapterImagesList {
