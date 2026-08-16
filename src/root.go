@@ -7,7 +7,6 @@ import (
 // TODO
 // - port to bubbletea?
 // - add language selection in mangadex
-// - add support for mangafire (and language selection)
 // - turn this into a server with web ui for remote and queued downloads
 //
 ////////////////////////////////////////////////////////////////////////////////

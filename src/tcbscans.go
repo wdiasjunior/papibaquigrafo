@@ -152,7 +152,7 @@ func getChapterImages(_mangaTitle string, _mangaChapter string)  {
 
   fmt.Println("Downloading chapter: ", mangaChapterNumber[1])
 
-  dir := fmt.Sprintf("%s/%s/Ch.%s", downloadsRoot, _mangaTitle, mangaChapterNumber[1])
+  dir := fmt.Sprintf("%s%s/%s/Ch.%s", downloadsRoot, authorSubDir, _mangaTitle, mangaChapterNumber[1])
   _dir := fsCreateDir(dir, false)
 
   for i, chapterImageURL := range chapterImagesList {

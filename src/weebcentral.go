@@ -217,7 +217,7 @@ func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string) {
     }
   }
 
-  dir := fmt.Sprintf("%s/%s/Ch.%s", downloadsRoot, _mangaTitle, mangaChapterNumber[0])
+  dir := fmt.Sprintf("%s%s/%s/Ch.%s", downloadsRoot, authorSubDir, _mangaTitle, mangaChapterNumber[0])
   _dir := fsCreateDir(dir, false)
 
   client := &http.Client{}

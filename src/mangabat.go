@@ -272,7 +272,7 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter ChapterMangabat)
 
   fmt.Println("Downloading chapter:", chapterFolder)
 
-  dir := fmt.Sprintf("%s/%s/%s", downloadsRoot, _mangaTitle, chapterFolder)
+  dir := fmt.Sprintf("%s%s/%s/%s", downloadsRoot, authorSubDir, _mangaTitle, chapterFolder)
   _dir := fsCreateDir(dir, false)
 
   client := &http.Client{}
