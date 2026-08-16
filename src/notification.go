@@ -3,7 +3,16 @@ package src
 import (
   "fmt"
   beeep "github.com/gen2brain/beeep"
+  "github.com/godbus/dbus/v5"
 )
+
+// beeep hardcodes an empty app_name when it talks to D-Bus, which is why its
+// notifications show up without a name or an icon, so send them directly
+const appNameNotification = "papibaquigrafo"
+
+// Themed icon name rather than a path - the notification server resolves the
+// right size and the light/dark variant from whatever theme is in use
+const notificationIcon = "download"
 
 // Every connector's top level function returns one of these so the notification
 // is sent from a single place instead of each connector rolling its own.
@@ -50,10 +59,36 @@ func notifyDownloadResult(_source string, _result DownloadResult) {
 
   title, message := buildNotificationMessage(_source, _result)
 
-  err := beeep.Notify(title, message, "")
+  err := notifyDesktop(title, message)
+  if err != nil {
+    // beeep still covers notify-send and kdialog when there is no session bus
+    err = beeep.Notify(title, message, "")
+  }
   if err != nil {
     fmt.Println("Error sending notification.")
   }
+}
+
+func notifyDesktop(_title string, _message string) error {
+  conn, err := dbus.SessionBus()
+  if err != nil {
+    return err
+  }
+
+  obj := conn.Object("org.freedesktop.Notifications", dbus.ObjectPath("/org/freedesktop/Notifications"))
+
+  call := obj.Call("org.freedesktop.Notifications.Notify", 0,
+    appNameNotification,       // app_name
+    uint32(0),                 // replaces_id
+    notificationIcon,          // app_icon
+    _title,                    // summary
+    _message,                  // body
+    []string{},                // actions
+    map[string]dbus.Variant{}, // hints
+    int32(-1),                 // expire_timeout - server default
+  )
+
+  return call.Err
 }
 
 func buildNotificationMessage(_source string, _result DownloadResult) (string, string) {

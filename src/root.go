@@ -41,9 +41,6 @@ import (
 //
 // BUGS
 // - mangadex - if chapter name is null or whatever, skip chapter and list at the end which chapters failed
-//
-// different project?
-// tool that searches for scanlation groups annoying images and lists them in a ui to select which to delete
 
 func Execute() {
   fmt.Println(`
