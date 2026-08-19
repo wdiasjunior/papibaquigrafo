@@ -7,7 +7,7 @@ Websites currently supported:
 - weebcentral
 - tcb scans
 - mangafire
-- mangabat (currently broken)
+- mangabat
 
 ## How to run
 

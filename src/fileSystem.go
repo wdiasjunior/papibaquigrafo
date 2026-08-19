@@ -7,7 +7,7 @@ import (
   "io/ioutil"
 )
 
-var downloadsRoot = "/run/media/wjr/weeb/papibaquigrafo"
+var downloadsRoot = "downloads"
 var authorSubDir = "" // don't forget a leading slash for the directory
 
 func fsCreateDir(_dir string, _singleFolder bool) string {
