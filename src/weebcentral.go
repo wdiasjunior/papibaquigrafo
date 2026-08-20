@@ -1,8 +1,11 @@
 package src
 
 import (
+  "bytes"
+  "context"
   "fmt"
-  "io/ioutil"
+  "io"
+  "net"
   "net/http"
   "regexp"
   "strconv"
@@ -16,9 +19,18 @@ import (
 // more aggressive clients
 const weebcentralConcurrency = 6
 
+// the image hosts throttle single connections down to KB/s, so a transfer may
+// legitimately take minutes — never cap total time, only abort when no bytes
+// arrive for this long
+var weebcentralStallTimeout = 30 * time.Second
+
 var weebcentralClient = &http.Client{
-  Timeout: 60 * time.Second,
-  Transport: &http.Transport{MaxIdleConnsPerHost: weebcentralConcurrency},
+  Transport: &http.Transport{
+    MaxIdleConnsPerHost: weebcentralConcurrency,
+    DialContext: (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+    TLSHandshakeTimeout: 15 * time.Second,
+    ResponseHeaderTimeout: 30 * time.Second,
+  },
 }
 
 func weebcentral() DownloadResult {
@@ -64,12 +76,15 @@ func weebcentral() DownloadResult {
   return downloadSuccess(mangaTitle, downloaded)
 }
 
+// retries until it succeeds — a skipped page leaves a hole in the chapter,
+// which is worse than waiting
 func fetchWeebcentral(_url string, _accept string) ([]byte, error) {
-  var lastErr error
   rateLimitWait := 5 * time.Second
-  for attempt := 1; attempt <= 3; {
-    req, err := http.NewRequest("GET", _url, nil)
+  for {
+    ctx, cancel := context.WithCancel(context.Background())
+    req, err := http.NewRequestWithContext(ctx, "GET", _url, nil)
     if err != nil {
+      cancel()
       return nil, err
     }
     req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -80,14 +95,14 @@ func fetchWeebcentral(_url string, _accept string) ([]byte, error) {
 
     resp, err := weebcentralClient.Do(req)
     if err != nil {
-      lastErr = err
-      attempt++
+      cancel()
+      fmt.Println("Request error, retrying:", _url, "-", err)
       continue
     }
-    body, err := ioutil.ReadAll(resp.Body)
-    resp.Body.Close()
     // rate-limit waits don't count as attempts; keep going until the limiter clears
     if resp.StatusCode == 429 {
+      resp.Body.Close()
+      cancel()
       wait := rateLimitWait
       if retryAfter, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil {
         wait = time.Duration(retryAfter) * time.Second
@@ -99,19 +114,42 @@ func fetchWeebcentral(_url string, _accept string) ([]byte, error) {
       }
       continue
     }
-    if err != nil {
-      lastErr = err
-      attempt++
-      continue
-    }
     if resp.StatusCode != 200 {
-      lastErr = fmt.Errorf("status %d for %s", resp.StatusCode, _url)
-      attempt++
+      resp.Body.Close()
+      cancel()
+      fmt.Println("Request error, retrying:", _url, "- status", resp.StatusCode)
       continue
     }
-    return body, nil
+
+    // a slow transfer is fine as long as bytes keep arriving; the watchdog
+    // cancels the request only after weebcentralStallTimeout with no progress
+    watchdog := time.AfterFunc(weebcentralStallTimeout, cancel)
+    var buf bytes.Buffer
+    chunk := make([]byte, 32 * 1024)
+    var readErr error
+    for {
+      n, err := resp.Body.Read(chunk)
+      if n > 0 {
+        watchdog.Reset(weebcentralStallTimeout)
+        buf.Write(chunk[:n])
+      }
+      if err == io.EOF {
+        break
+      }
+      if err != nil {
+        readErr = err
+        break
+      }
+    }
+    watchdog.Stop()
+    resp.Body.Close()
+    cancel()
+    if readErr != nil {
+      fmt.Println("Transfer stalled, retrying:", _url, "-", readErr)
+      continue
+    }
+    return buf.Bytes(), nil
   }
-  return nil, lastErr
 }
 
 func getPageWeebcentral(_url string) (string, error) {
@@ -222,55 +260,109 @@ func getMangaWeebcentral(_mangaID string) (string, []string, []string) {
   return mangaTitle, chapterList, chapterLabels
 }
 
+// the chapter label normally comes from the chapter list; if it was missing
+// there, fall back to the chapter page itself and, like the pre-rewrite logic,
+// keep trying until a number turns up — never proceed without one
+func getChapterNumberWeebcentral(_mangaChapter string, _chapterLabel string) string {
+  regex := regexp.MustCompile(`\d+(\.\d+)?$`)
+  if chapterNumber := regex.FindString(_chapterLabel); chapterNumber != "" {
+    return chapterNumber
+  }
+  if _chapterLabel != "" {
+    // e.g. a oneshot labeled just "Oneshot"
+    return _chapterLabel
+  }
+
+  for {
+    body, err := getPageWeebcentral(_mangaChapter)
+    if err != nil {
+      fmt.Println("Could not get chapter page: ", err)
+      continue
+    }
+
+    var innerText string
+    buttonDepth := 0
+    tokenizer := html.NewTokenizer(strings.NewReader(body))
+    loop: for {
+      switch tokenizer.Next() {
+      case html.StartTagToken:
+        token := tokenizer.Token()
+        if buttonDepth > 0 {
+          buttonDepth++
+        } else if token.Data == "button" {
+          for _, attr := range token.Attr {
+            if attr.Key == "class" && strings.Contains(attr.Val, "col-span-3") {
+              buttonDepth = 1
+              break
+            }
+          }
+        }
+      case html.TextToken:
+        if buttonDepth > 0 {
+          innerText += string(tokenizer.Text())
+        }
+      case html.EndTagToken:
+        if buttonDepth > 0 {
+          buttonDepth--
+          if buttonDepth == 0 {
+            break loop
+          }
+        }
+      case html.ErrorToken:
+        break loop
+      }
+    }
+
+    if chapterNumber := regex.FindString(strings.TrimSpace(innerText)); chapterNumber != "" {
+      return chapterNumber
+    }
+    fmt.Println("Could not find chapter number element.")
+  }
+}
+
 func getChapterImagesWeebcentral(_mangaTitle string, _mangaChapter string, _chapterLabel string) {
   var urlImages string = fmt.Sprintf("%s%s", _mangaChapter, "/images?is_prev=False&current_page=1&reading_style=long_strip")
 
-  body, err := getPageWeebcentral(urlImages)
-  if err != nil {
-    fmt.Println("Could not get chapter images: ", err)
-    return
-  }
-
-  chapterNumber := regexp.MustCompile(`\d+(\.\d+)?$`).FindString(_chapterLabel)
-  if chapterNumber == "" {
-    // e.g. a oneshot labeled just "Oneshot"
-    chapterNumber = _chapterLabel
-  }
-  if chapterNumber == "" {
-    fmt.Println("Could not find chapter number, skipping: ", _mangaChapter)
-    return
-  }
+  chapterNumber := getChapterNumberWeebcentral(_mangaChapter, _chapterLabel)
 
   fmt.Println("Downloading chapter: ", chapterNumber)
 
-  var chapterImagesList = []string{}
   imgTargetClass := "max-w-full"
+  var chapterImagesList []string
 
-  tokenizer := html.NewTokenizer(strings.NewReader(body))
-  loop: for {
-    switch tokenizer.Next() {
-    case html.ErrorToken:
-      break loop
-    case html.StartTagToken, html.SelfClosingTagToken:
-      token := tokenizer.Token()
-      if token.Data == "img" {
-        for _, attr := range token.Attr {
-          if attr.Key == "class" && strings.Contains(attr.Val, imgTargetClass) {
-            for _, attr := range token.Attr {
-              if attr.Key == "src" {
-                chapterImagesList = append(chapterImagesList, attr.Val)
-                break
+  // like everything else: an empty parse is retried, never skipped
+  for len(chapterImagesList) == 0 {
+    body, err := getPageWeebcentral(urlImages)
+    if err != nil {
+      fmt.Println("Could not get chapter images: ", err)
+      continue
+    }
+
+    tokenizer := html.NewTokenizer(strings.NewReader(body))
+    loop: for {
+      switch tokenizer.Next() {
+      case html.ErrorToken:
+        break loop
+      case html.StartTagToken, html.SelfClosingTagToken:
+        token := tokenizer.Token()
+        if token.Data == "img" {
+          for _, attr := range token.Attr {
+            if attr.Key == "class" && strings.Contains(attr.Val, imgTargetClass) {
+              for _, attr := range token.Attr {
+                if attr.Key == "src" {
+                  chapterImagesList = append(chapterImagesList, attr.Val)
+                  break
+                }
               }
             }
           }
         }
       }
     }
-  }
 
-  if len(chapterImagesList) == 0 {
-    fmt.Println("No images found for chapter: ", chapterNumber)
-    return
+    if len(chapterImagesList) == 0 {
+      fmt.Println("No images found for chapter, retrying: ", chapterNumber)
+    }
   }
 
   dir := fmt.Sprintf("%s%s/%s/Ch.%s", downloadsRoot, authorSubDir, _mangaTitle, chapterNumber)

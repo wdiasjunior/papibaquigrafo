@@ -18,11 +18,10 @@ import (
 const baseURLMangaFire = "https://mangafire.to"
 
 const chapterPageSizeMangaFire = 200
-const maxImageAttemptsMangaFire = 5
 
-// How long to sit waiting for Firefox to be pointed at the site again after the
-// clearance has gone stale
-const clearanceWaitMangaFire = 3 * time.Minute
+// The wait for Firefox to be pointed at the site again has no deadline, so
+// say so again every now and then rather than looking hung
+const clearanceNudgeMangaFire = 1 * time.Minute
 
 var languageNamesMangaFire = map[string]string{
   "en": "English", "ja": "Japanese", "es": "Spanish", "es-la": "Spanish (LATAM)",
@@ -57,10 +56,11 @@ func mangafire() (result DownloadResult) {
     return downloadFailed("", err.Error())
   }
 
-  mangaTitle, err = getMangaTitleMangaFire(client, hid)
-  if err != nil && isChallengedMangaFire(err) && client.waitForClearance() {
-    mangaTitle, err = getMangaTitleMangaFire(client, hid)
-  }
+  err = client.retryUntilCleared(func() error {
+    var attemptErr error
+    mangaTitle, attemptErr = getMangaTitleMangaFire(client, hid)
+    return attemptErr
+  })
   if err != nil {
     fmt.Println("\n" + describeFailureMangaFire(err))
     return downloadFailed("", describeFailureMangaFire(err))
@@ -69,10 +69,13 @@ func mangafire() (result DownloadResult) {
   fmt.Println("")
   fmt.Println(mangaTitle)
 
-  chapterList, availableLanguages, err := getChaptersMangaFire(client, hid, "")
-  if err != nil && isChallengedMangaFire(err) && client.waitForClearance() {
-    chapterList, availableLanguages, err = getChaptersMangaFire(client, hid, "")
-  }
+  var chapterList []ChapterMangaFire
+  var availableLanguages []MangaFireLanguage
+  err = client.retryUntilCleared(func() error {
+    var attemptErr error
+    chapterList, availableLanguages, attemptErr = getChaptersMangaFire(client, hid, "")
+    return attemptErr
+  })
   if err != nil {
     fmt.Println("\n" + describeFailureMangaFire(err))
     return downloadFailed(mangaTitle, describeFailureMangaFire(err))
@@ -104,7 +107,11 @@ func mangafire() (result DownloadResult) {
   // when it could not all fit on one page
   chapterList = filterChaptersByLangMangaFire(chapterList, langCode)
   if len(chapterList) == 0 {
-    chapterList, _, err = getChaptersMangaFire(client, hid, langCode)
+    err = client.retryUntilCleared(func() error {
+      var attemptErr error
+      chapterList, _, attemptErr = getChaptersMangaFire(client, hid, langCode)
+      return attemptErr
+    })
     if err != nil {
       fmt.Println("\nCould not get the chapter list:", err)
       return downloadFailed(mangaTitle, describeFailureMangaFire(err))
@@ -140,41 +147,31 @@ func mangafire() (result DownloadResult) {
     langSuffix = selectedLang.Code
   }
 
-  selected := 0
   downloaded := 0
-  var failed []string
 
   for i, chapter := range chapterList {
     if i >= firstChapter - 1 && i <= lastChapter - 1 {
-      selected++
-      err := getChapterImagesMangaFire(client, mangaTitle, chapter, langSuffix)
-      // A long run can outlive the clearance, so give it one chance to be
-      // renewed rather than writing off every chapter that is left
-      if err != nil && isChallengedMangaFire(err) && client.waitForClearance() {
-        err = getChapterImagesMangaFire(client, mangaTitle, chapter, langSuffix)
-      }
-      if err != nil {
-        fmt.Println("Could not download", chapter.ChapterTitle, "-", describeFailureMangaFire(err))
-        failed = append(failed, chapter.ChapterNumStr)
-        continue
+      // A long run easily outlives the cookies, and anything else can fail
+      // transiently too. Stay on this chapter until it comes down rather than
+      // running down the rest of the list leaving holes behind for the user
+      // to find and fetch again by hand.
+      for {
+        err := client.retryUntilCleared(func() error {
+          return getChapterImagesMangaFire(client, mangaTitle, chapter, langSuffix)
+        })
+        if err == nil {
+          break
+        }
+        fmt.Println("Could not download", chapter.ChapterTitle, "- retrying -", describeFailureMangaFire(err))
+        time.Sleep(2 * time.Second)
       }
       downloaded++
     }
   }
 
-  if selected == 0 {
+  if downloaded == 0 {
     fmt.Printf("\nNo chapters in the selected range.\n")
     return downloadFailed(mangaTitle, "No chapters in the selected range.")
-  }
-
-  if downloaded == 0 {
-    fmt.Printf("\nNo chapters could be downloaded.\n")
-    return downloadFailed(mangaTitle, "No chapters could be downloaded.")
-  }
-
-  if len(failed) > 0 {
-    fmt.Printf("\nDownload completed with errors. Failed chapters: %s\n", strings.Join(failed, ", "))
-    return downloadFailed(mangaTitle, fmt.Sprintf("%d of %d chapters failed: %s", len(failed), selected, strings.Join(failed, ", ")))
   }
 
   fmt.Printf("\nDownload completed!\n")
@@ -321,10 +318,17 @@ func vrfReadyMangaFire() bool {
 // from here - Cloudflare rejects the devtools protocol a headless browser is
 // driven with, so even a real Chrome sits on "Just a moment..." forever. What
 // does work is the clearance Firefox already earned by browsing the site
-// normally: borrow that cookie and the api answers plain http requests.
+// normally: borrow those cookies and the api answers plain http requests.
+//
+// Two cookies are needed, not one. cf_clearance is the long lived proof the
+// challenge was passed, but the site also puts Cloudflare in front of anything
+// missing its own waf_pass cookie, so cf_clearance on its own gets a "Just a
+// moment..." page back. waf_pass is short lived (~30 minutes) and Firefox is
+// handed a new one whenever the site is opened.
 type mangaFireClient struct {
   http      *http.Client
   clearance string
+  wafPass   string
   userAgent string
 }
 
@@ -333,11 +337,14 @@ func newClientMangaFire() (*mangaFireClient, error) {
     return nil, fmt.Errorf("Request signing is broken - the built in vrf tables did not decode.")
   }
 
-  clearance := os.Getenv("PAPIBAQUIGRAFO_MF_CLEARANCE")
-  if clearance == "" {
-    clearance = firefoxClearanceMangaFire()
+  clearance, wafPass := firefoxCookiesMangaFire()
+  if override := os.Getenv("PAPIBAQUIGRAFO_MF_CLEARANCE"); override != "" {
+    clearance = override
   }
-  if clearance == "" {
+  if override := os.Getenv("PAPIBAQUIGRAFO_MF_WAF_PASS"); override != "" {
+    wafPass = override
+  }
+  if clearance == "" || wafPass == "" {
     return nil, fmt.Errorf("No Cloudflare clearance found. Open %s in Firefox, let the check pass, then run this again.", baseURLMangaFire)
   }
 
@@ -349,12 +356,13 @@ func newClientMangaFire() (*mangaFireClient, error) {
   return &mangaFireClient{
     http:      &http.Client{Timeout: 60 * time.Second},
     clearance: clearance,
+    wafPass:   wafPass,
     userAgent: userAgent,
   }, nil
 }
 
-// Clearance only stays valid for a short while, and a download can easily
-// outlive it, so a 403 is worth one look for a fresher cookie before giving up
+// waf_pass only stays valid for half an hour or so, and a download can easily
+// outlive it, so a 403 is worth one look for fresher cookies before giving up
 func (c *mangaFireClient) apiGet(_path string, _params [][2]string) ([]byte, int, error) {
   body, status, err := c.get(_path, _params)
   if status == 403 && c.refreshClearance() {
@@ -364,34 +372,59 @@ func (c *mangaFireClient) apiGet(_path string, _params [][2]string) ([]byte, int
   return body, status, err
 }
 
+// Either cookie moving on is worth another try - cf_clearance is usually the
+// one that stays put for months while waf_pass turns over every visit
 func (c *mangaFireClient) refreshClearance() bool {
-  latest := firefoxClearanceMangaFire()
-  if latest == "" || latest == c.clearance {
+  clearance, wafPass := firefoxCookiesMangaFire()
+  if clearance == "" || wafPass == "" {
+    return false
+  }
+  if clearance == c.clearance && wafPass == c.wafPass {
     return false
   }
 
-  fmt.Println("Picked up a newer Cloudflare clearance from Firefox.")
-  c.clearance = latest
+  fmt.Println("Picked up newer Cloudflare cookies from Firefox.")
+  c.clearance = clearance
+  c.wafPass = wafPass
 
   return true
 }
 
 // waitForClearance parks until Firefox has been pointed at the site again and
-// a different cookie shows up, so the run can carry on where it left off
-func (c *mangaFireClient) waitForClearance() bool {
-  fmt.Printf("\nThe Cloudflare clearance has gone stale.\n")
-  fmt.Printf("Open %s in Firefox and let the page finish loading - this picks the new clearance up on its own.\n", baseURLMangaFire)
-  fmt.Printf("Waiting up to %d minutes...\n", int(clearanceWaitMangaFire.Minutes()))
+// a different cookie shows up, so the run can carry on where it left off.
+// There is deliberately no deadline: giving up only moves the problem onto the
+// user, who then has to work out which chapters were skipped and fetch them by
+// hand. Sitting on the same chapter until the cookies come back is cheaper.
+func (c *mangaFireClient) waitForClearance() {
+  fmt.Printf("\nThe Cloudflare cookies have gone stale.\n")
+  fmt.Printf("Open %s in Firefox and let the page finish loading - this picks the new cookies up on its own.\n", baseURLMangaFire)
+  fmt.Printf("Waiting - nothing is skipped, this carries on where it left off. Ctrl-C to stop.\n")
 
-  deadline := time.Now().Add(clearanceWaitMangaFire)
-  for time.Now().Before(deadline) {
+  nudge := time.Now().Add(clearanceNudgeMangaFire)
+  for {
     time.Sleep(3 * time.Second)
     if c.refreshClearance() {
-      return true
+      return
+    }
+
+    if time.Now().After(nudge) {
+      fmt.Printf("Still waiting on %s in Firefox...\n", baseURLMangaFire)
+      nudge = time.Now().Add(clearanceNudgeMangaFire)
     }
   }
+}
 
-  return false
+// retryUntilCleared runs _attempt over and over, parking for fresh
+// cookies between tries, until it comes back with something other than a
+// challenge. Anything that is not a challenge is handed straight back.
+func (c *mangaFireClient) retryUntilCleared(_attempt func() error) error {
+  err := _attempt()
+  for isChallengedMangaFire(err) {
+    c.waitForClearance()
+    err = _attempt()
+  }
+
+  return err
 }
 
 func (c *mangaFireClient) get(_path string, _params [][2]string) ([]byte, int, error) {
@@ -402,11 +435,12 @@ func (c *mangaFireClient) get(_path string, _params [][2]string) ([]byte, int, e
     return nil, 0, err
   }
   // The clearance is tied to the user agent that earned it, so these two have
-  // to travel together
+  // to travel together, and waf_pass has to come along or Cloudflare answers
+  // with a challenge page no matter how fresh the clearance is
   req.Header.Set("User-Agent", c.userAgent)
   req.Header.Set("Accept", "application/json")
   req.Header.Set("Referer", fmt.Sprintf("%s/", baseURLMangaFire))
-  req.Header.Set("Cookie", fmt.Sprintf("cf_clearance=%s", c.clearance))
+  req.Header.Set("Cookie", fmt.Sprintf("cf_clearance=%s; waf_pass=%s", c.clearance, c.wafPass))
 
   resp, err := c.http.Do(req)
   if err != nil {
@@ -449,35 +483,37 @@ func describeFailureMangaFire(_err error) string {
 
 // Firefox keeps its cookies in plain text inside a sqlite file. Rather than
 // pull in a sqlite driver for one query, shell out to the sqlite3 binary.
-func firefoxClearanceMangaFire() string {
+// Both cookies have to come from the same profile - pairing a clearance with
+// another profile's waf_pass gets the challenge page back.
+func firefoxCookiesMangaFire() (string, string) {
   if _, err := exec.LookPath("sqlite3"); err != nil {
-    fmt.Println("sqlite3 is not installed, so the Firefox clearance cookie cannot be read.")
-    return ""
+    fmt.Println("sqlite3 is not installed, so the Firefox cookies cannot be read.")
+    return "", ""
   }
 
   home, err := os.UserHomeDir()
   if err != nil {
-    return ""
+    return "", ""
   }
 
   profiles, _ := filepath.Glob(filepath.Join(home, ".mozilla", "firefox", "*", "cookies.sqlite"))
   if len(profiles) == 0 {
-    return ""
+    return "", ""
   }
 
   // Newest profile first - the one being browsed with is the one with the
-  // freshest clearance
+  // freshest cookies
   sort.Slice(profiles, func(i, j int) bool {
     return modTimeMangaFire(profiles[i]).After(modTimeMangaFire(profiles[j]))
   })
 
   for _, profile := range profiles {
-    if clearance := readFirefoxCookieMangaFire(profile); clearance != "" {
-      return clearance
+    if clearance, wafPass := readFirefoxCookiesMangaFire(profile); clearance != "" && wafPass != "" {
+      return clearance, wafPass
     }
   }
 
-  return ""
+  return "", ""
 }
 
 func modTimeMangaFire(_path string) time.Time {
@@ -488,28 +524,45 @@ func modTimeMangaFire(_path string) time.Time {
   return info.ModTime()
 }
 
-func readFirefoxCookieMangaFire(_cookiesPath string) string {
+func readFirefoxCookiesMangaFire(_cookiesPath string) (string, string) {
   // Firefox journals in wal mode and holds the newest cookies there, so the
-  // sidecar has to come along or the value reads back empty
+  // sidecar has to come along or the values read back empty
   tempDir, err := ioutil.TempDir("", "papibaquigrafo")
   if err != nil {
-    return ""
+    return "", ""
   }
   defer os.RemoveAll(tempDir)
 
   copyPath := filepath.Join(tempDir, "cookies.sqlite")
   if err := copyFileMangaFire(_cookiesPath, copyPath); err != nil {
-    return ""
+    return "", ""
   }
   copyFileMangaFire(_cookiesPath + "-wal", copyPath + "-wal")
 
-  query := "select value from moz_cookies where host like '%mangafire%' and name='cf_clearance' and value != '' order by lastAccessed desc limit 1;"
+  // Oldest first so a later row for the same name overwrites an earlier one,
+  // leaving the most recently used value of each
+  query := "select name, value from moz_cookies where host like '%mangafire%' and name in ('cf_clearance', 'waf_pass') and value != '' order by lastAccessed asc;"
   out, err := exec.Command("sqlite3", copyPath, query).Output()
   if err != nil {
-    return ""
+    return "", ""
   }
 
-  return strings.TrimSpace(string(out))
+  var clearance, wafPass string
+  for _, line := range strings.Split(string(out), "\n") {
+    parts := strings.SplitN(strings.TrimSpace(line), "|", 2)
+    if len(parts) != 2 {
+      continue
+    }
+
+    switch parts[0] {
+    case "cf_clearance":
+      clearance = parts[1]
+    case "waf_pass":
+      wafPass = parts[1]
+    }
+  }
+
+  return clearance, wafPass
 }
 
 func copyFileMangaFire(_from string, _to string) error {
@@ -742,28 +795,19 @@ func getChapterImagesMangaFire(_client *mangaFireClient, _mangaTitle string, _ma
   }
   _dir := fsCreateDir(dir, false)
 
-  failedImages := 0
   for i, chapterImageURL := range chapterImagesList {
     chapterImage := downloadImageMangaFire(_client, chapterImageURL)
-    if chapterImage == nil {
-      fmt.Println("Skipping image after repeated failures:", chapterImageURL)
-      failedImages++
-      continue
-    }
     fsCreateFile(chapterImageURL, _dir, i + 1, chapterImage, false, "")
-  }
-
-  if failedImages == len(chapterImagesList) {
-    return fmt.Errorf("none of the %d images could be downloaded", len(chapterImagesList))
   }
 
   return nil
 }
 
-// The images sit on a cdn that is not behind the challenge - bounded retries,
-// so a permanent 403 cannot spin forever
+// The images sit on a cdn that is not behind the challenge. Retries have no
+// cap - a skipped page leaves a hole in the chapter, which is worse than
+// waiting for the cdn to come back
 func downloadImageMangaFire(_client *mangaFireClient, _imageURL string) []byte {
-  for attempt := 0; attempt < maxImageAttemptsMangaFire; attempt++ {
+  for attempt := 0; ; attempt++ {
     if attempt > 0 {
       time.Sleep(2 * time.Second)
     }
@@ -771,7 +815,7 @@ func downloadImageMangaFire(_client *mangaFireClient, _imageURL string) []byte {
     req, err := http.NewRequest("GET", _imageURL, nil)
     if err != nil {
       fmt.Println("Error creating request:", err)
-      return nil
+      continue
     }
     req.Header.Set("User-Agent", _client.userAgent)
     req.Header.Set("Referer", fmt.Sprintf("%s/", baseURLMangaFire))
@@ -799,8 +843,6 @@ func downloadImageMangaFire(_client *mangaFireClient, _imageURL string) []byte {
 
     return res
   }
-
-  return nil
 }
 
 func truncateMangaFire(_body string, _max int) string {

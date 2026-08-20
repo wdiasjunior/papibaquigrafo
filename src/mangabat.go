@@ -115,14 +115,23 @@ func httpGetMangabat(_url string, _referer string) ([]byte, error) {
   return body, nil
 }
 
+// pages and chapters are never skipped: every fetch retries until it succeeds
+func httpGetMangabatRetry(_url string, _referer string) []byte {
+  for {
+    body, err := httpGetMangabat(_url, _referer)
+    if err != nil {
+      fmt.Println("Request error, retrying:", _url, "-", err)
+      time.Sleep(2 * time.Second)
+      continue
+    }
+    return body
+  }
+}
+
 func getMangaMangabat(_mangaID string) (string, []ChapterMangabat) {
   mangaURL := fmt.Sprintf("%s/manga/%s", baseURLMangabat, _mangaID)
 
-  body, err := httpGetMangabat(mangaURL, fmt.Sprintf("%s/", baseURLMangabat))
-  if err != nil {
-    fmt.Println("Could not get manga page:", err)
-    return "", nil
-  }
+  body := httpGetMangabatRetry(mangaURL, fmt.Sprintf("%s/", baseURLMangabat))
 
   mangaTitle := getMangaTitleMangabat(string(body))
   if mangaTitle == "" {
@@ -189,16 +198,14 @@ func getChapterListMangabat(_mangaID string, _mangaURL string) []ChapterMangabat
   for {
     apiURL := fmt.Sprintf("%s/api/manga/%s/chapters?limit=%d&offset=%d", baseURLMangabat, _mangaID, chapterPageSizeMangabat, offset)
 
-    body, err := httpGetMangabat(apiURL, _mangaURL)
-    if err != nil {
-      fmt.Println("Could not get chapter list:", err)
-      break
-    }
+    body := httpGetMangabatRetry(apiURL, _mangaURL)
 
     var apiResp mangabatChaptersResponse
     if err := json.Unmarshal(body, &apiResp); err != nil {
-      fmt.Println("Could not parse chapter list:", err)
-      break
+      // a truncated list would leave chapters silently missing - retry the page
+      fmt.Println("Could not parse chapter list, retrying:", err)
+      time.Sleep(2 * time.Second)
+      continue
     }
 
     if !apiResp.Success || len(apiResp.Data.Chapters) == 0 {
@@ -255,17 +262,18 @@ func getChapterListMangabat(_mangaID string, _mangaURL string) []ChapterMangabat
 }
 
 func getChapterImagesMangabat(_mangaTitle string, _mangaChapter ChapterMangabat) {
-  body, err := httpGetMangabat(_mangaChapter.ChapterURL, fmt.Sprintf("%s/", baseURLMangabat))
-  if err != nil {
-    fmt.Println("Could not get chapter images:", err)
-    return
-  }
+  var imagePaths, cdnList []string
 
-  imagePaths, cdnList := extractChapterImagesMangabat(string(body))
+  // like the fetches themselves: an empty parse is retried, never skipped
+  for len(imagePaths) == 0 || len(cdnList) == 0 {
+    body := httpGetMangabatRetry(_mangaChapter.ChapterURL, fmt.Sprintf("%s/", baseURLMangabat))
 
-  if len(imagePaths) == 0 || len(cdnList) == 0 {
-    fmt.Println("No images found for chapter:", _mangaChapter.ChapterName)
-    return
+    imagePaths, cdnList = extractChapterImagesMangabat(string(body))
+
+    if len(imagePaths) == 0 || len(cdnList) == 0 {
+      fmt.Println("No images found for chapter, retrying:", _mangaChapter.ChapterName)
+      time.Sleep(2 * time.Second)
+    }
   }
 
   chapterFolder := fmt.Sprintf("Ch.%s", _mangaChapter.ChapterNum)
@@ -279,11 +287,11 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter ChapterMangabat)
 
   for i, imagePath := range imagePaths {
     var chapterImage []byte
-    var lastURL string
 
-    for attempt := 0; attempt < len(cdnList) * 3; attempt++ {
+    // rotate the cdn hosts and keep at it until the page comes down - a
+    // skipped page leaves a hole in the chapter
+    for attempt := 0; ; attempt++ {
       chapterImageURL := fmt.Sprintf("%s%s", cdnList[attempt % len(cdnList)], imagePath)
-      lastURL = chapterImageURL
 
       req, err := http.NewRequest("GET", chapterImageURL, nil)
       if err != nil {
@@ -321,11 +329,6 @@ func getChapterImagesMangabat(_mangaTitle string, _mangaChapter ChapterMangabat)
       }
       chapterImage = res
       break
-    }
-
-    if len(chapterImage) == 0 {
-      fmt.Println("Skipping image after repeated failures:", lastURL)
-      continue
     }
 
     fsCreateFile(imagePath, _dir, i + 1, chapterImage, false, "")
