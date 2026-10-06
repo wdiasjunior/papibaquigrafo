@@ -276,6 +276,10 @@ func vrfEncryptMangaFire(_data []byte, _stage vrfStageMangaFire) []byte {
 // The signature covers the path without the /api prefix and the query sorted by
 // key, so the request has to send the params back in that same order
 func apiURLMangaFire(_path string, _params [][2]string) string {
+  return apiRequestURLMangaFire(baseURLMangaFire, _path, _params)
+}
+
+func apiRequestURLMangaFire(_baseURL string, _path string, _params [][2]string) string {
   params := make([][2]string, len(_params))
   copy(params, _params)
   sort.SliceStable(params, func(i, j int) bool {
@@ -296,9 +300,9 @@ func apiURLMangaFire(_path string, _params [][2]string) string {
   signature := signVrfMangaFire(signPath)
 
   if query != "" {
-    return fmt.Sprintf("%s/api%s?%s&vrf=%s", baseURLMangaFire, _path, query, signature)
+    return fmt.Sprintf("%s/api%s?%s&vrf=%s", _baseURL, _path, query, signature)
   }
-  return fmt.Sprintf("%s/api%s?vrf=%s", baseURLMangaFire, _path, signature)
+  return fmt.Sprintf("%s/api%s?vrf=%s", _baseURL, _path, signature)
 }
 
 func vrfReadyMangaFire() bool {
@@ -314,22 +318,39 @@ func vrfReadyMangaFire() bool {
 // http
 ////////////////////////////////////////////////////////////////////////////////
 
-// mangafire.to sits behind a Cloudflare managed challenge. It cannot be passed
-// from here - Cloudflare rejects the devtools protocol a headless browser is
-// driven with, so even a real Chrome sits on "Just a moment..." forever. What
-// does work is the clearance Firefox already earned by browsing the site
-// normally: borrow those cookies and the api answers plain http requests.
+// mangafire.to is a single page app: every html url serves the same empty
+// shell, so the title, chapter list and page urls can only come from the
+// signed json api. Two routes reach it.
 //
-// Two cookies are needed, not one. cf_clearance is the long lived proof the
-// challenge was passed, but the site also puts Cloudflare in front of anything
-// missing its own waf_pass cookie, so cf_clearance on its own gets a "Just a
-// moment..." page back. waf_pass is short lived (~30 minutes) and Firefox is
-// handed a new one whenever the site is opened.
+// The plain route is a cookieless request with an ordinary browser user
+// agent. It goes first, and lately it is all that is needed.
+//
+// When Cloudflare refuses it, the connector falls back on the clearance
+// Firefox already earned by browsing the site normally. The challenge cannot
+// be passed from here - Cloudflare rejects the devtools protocol a headless
+// browser is driven with, so even a real Chrome sits on "Just a moment..."
+// forever. Two cookies are needed, not one. cf_clearance is the long lived
+// proof the challenge was passed, but the site also puts Cloudflare in front
+// of anything missing its own waf_pass cookie, so cf_clearance on its own
+// gets a "Just a moment..." page back. waf_pass is short lived (~30 minutes)
+// and Firefox is handed a new one whenever the site is opened. The clearance
+// is tied to the user agent that earned it, so the cookie route sends
+// Firefox's user agent while the plain route sends a generic one.
+const plainUserAgentMangaFire = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
 type mangaFireClient struct {
-  http      *http.Client
-  clearance string
-  wafPass   string
-  userAgent string
+  http    *http.Client
+  baseURL string
+
+  // false: the plain route. true: Firefox's cookies travel with every request.
+  useCookies bool
+  clearance  string
+  wafPass    string
+
+  firefoxUserAgent string
+
+  // Where the fallback cookies come from - Firefox's cookie db, or a stub in tests
+  cookieSource func() (string, string)
 }
 
 func newClientMangaFire() (*mangaFireClient, error) {
@@ -337,45 +358,71 @@ func newClientMangaFire() (*mangaFireClient, error) {
     return nil, fmt.Errorf("Request signing is broken - the built in vrf tables did not decode.")
   }
 
-  clearance, wafPass := firefoxCookiesMangaFire()
-  if override := os.Getenv("PAPIBAQUIGRAFO_MF_CLEARANCE"); override != "" {
-    clearance = override
-  }
-  if override := os.Getenv("PAPIBAQUIGRAFO_MF_WAF_PASS"); override != "" {
-    wafPass = override
-  }
-  if clearance == "" || wafPass == "" {
-    return nil, fmt.Errorf("No Cloudflare clearance found. Open %s in Firefox, let the check pass, then run this again.", baseURLMangaFire)
-  }
-
-  userAgent := os.Getenv("PAPIBAQUIGRAFO_MF_UA")
-  if userAgent == "" {
-    userAgent = firefoxUserAgentMangaFire()
-  }
-
   return &mangaFireClient{
-    http:      &http.Client{Timeout: 60 * time.Second},
-    clearance: clearance,
-    wafPass:   wafPass,
-    userAgent: userAgent,
+    http:         &http.Client{Timeout: 60 * time.Second},
+    baseURL:      baseURLMangaFire,
+    cookieSource: firefoxCookiesMangaFire,
   }, nil
 }
 
-// waf_pass only stays valid for half an hour or so, and a download can easily
-// outlive it, so a 403 is worth one look for fresher cookies before giving up
-func (c *mangaFireClient) apiGet(_path string, _params [][2]string) ([]byte, int, error) {
-  body, status, err := c.get(_path, _params)
-  if status == 403 && c.refreshClearance() {
-    return c.get(_path, _params)
+func (c *mangaFireClient) userAgent() string {
+  if c.useCookies {
+    return c.firefoxUserAgent
   }
 
-  return body, status, err
+  return plainUserAgentMangaFire
 }
 
-// Either cookie moving on is worth another try - cf_clearance is usually the
-// one that stays put for months while waf_pass turns over every visit
-func (c *mangaFireClient) refreshClearance() bool {
-  clearance, wafPass := firefoxCookiesMangaFire()
+// apiGet tries the plain route and only reaches for the Firefox cookies when
+// Cloudflare refuses it. Once on the cookie route a 403 means waf_pass has
+// turned over (it only lasts half an hour or so, and a download easily
+// outlives it), so look for fresher cookies - and failing that, check whether
+// the plain route has opened back up before parking.
+func (c *mangaFireClient) apiGet(_path string, _params [][2]string) ([]byte, int, error) {
+  body, status, err := c.get(_path, _params, c.useCookies)
+  if !isChallengedMangaFire(err) {
+    return body, status, err
+  }
+
+  if !c.useCookies {
+    if !c.loadFirefoxCookies() {
+      return body, status, err
+    }
+    fmt.Println("Cloudflare refused the plain request - falling back on the Firefox cookies.")
+    c.useCookies = true
+    return c.get(_path, _params, true)
+  }
+
+  if c.loadFirefoxCookies() {
+    fmt.Println("Picked up newer Cloudflare cookies from Firefox.")
+    return c.get(_path, _params, true)
+  }
+
+  plainBody, plainStatus, plainErr := c.get(_path, _params, false)
+  if isChallengedMangaFire(plainErr) {
+    return body, status, err
+  }
+  fmt.Println("The plain route is answering again - leaving the Firefox cookies behind.")
+  c.useCookies = false
+
+  return plainBody, plainStatus, plainErr
+}
+
+// loadFirefoxCookies reads the cookies back and reports whether either moved
+// on. cf_clearance usually stays put for months while waf_pass turns over on
+// every visit, so a change in either is worth another try. The env overrides
+// only stand in for the first read - once they have gone stale the only
+// place a fresh pair can come from is Firefox.
+func (c *mangaFireClient) loadFirefoxCookies() bool {
+  clearance, wafPass := c.cookieSource()
+  if c.clearance == "" {
+    if override := os.Getenv("PAPIBAQUIGRAFO_MF_CLEARANCE"); override != "" {
+      clearance = override
+    }
+    if override := os.Getenv("PAPIBAQUIGRAFO_MF_WAF_PASS"); override != "" {
+      wafPass = override
+    }
+  }
   if clearance == "" || wafPass == "" {
     return false
   }
@@ -383,42 +430,51 @@ func (c *mangaFireClient) refreshClearance() bool {
     return false
   }
 
-  fmt.Println("Picked up newer Cloudflare cookies from Firefox.")
   c.clearance = clearance
   c.wafPass = wafPass
+  if c.firefoxUserAgent == "" {
+    c.firefoxUserAgent = os.Getenv("PAPIBAQUIGRAFO_MF_UA")
+    if c.firefoxUserAgent == "" {
+      c.firefoxUserAgent = firefoxUserAgentMangaFire()
+    }
+  }
 
   return true
 }
 
 // waitForClearance parks until Firefox has been pointed at the site again and
-// a different cookie shows up, so the run can carry on where it left off.
-// There is deliberately no deadline: giving up only moves the problem onto the
-// user, who then has to work out which chapters were skipped and fetch them by
-// hand. Sitting on the same chapter until the cookies come back is cheaper.
+// a different cookie shows up, or a minute has gone by - at which point the
+// request is worth another go anyway, in case the plain route has opened back
+// up. There is deliberately no deadline: giving up only moves the problem onto
+// the user, who then has to work out which chapters were skipped and fetch
+// them by hand. Sitting on the same chapter until a route comes back is cheaper.
 func (c *mangaFireClient) waitForClearance() {
-  fmt.Printf("\nThe Cloudflare cookies have gone stale.\n")
-  fmt.Printf("Open %s in Firefox and let the page finish loading - this picks the new cookies up on its own.\n", baseURLMangaFire)
-  fmt.Printf("Waiting - nothing is skipped, this carries on where it left off. Ctrl-C to stop.\n")
-
   nudge := time.Now().Add(clearanceNudgeMangaFire)
-  for {
+  for time.Now().Before(nudge) {
     time.Sleep(3 * time.Second)
-    if c.refreshClearance() {
+    if c.loadFirefoxCookies() {
+      fmt.Println("Picked up newer Cloudflare cookies from Firefox.")
+      c.useCookies = true
       return
     }
-
-    if time.Now().After(nudge) {
-      fmt.Printf("Still waiting on %s in Firefox...\n", baseURLMangaFire)
-      nudge = time.Now().Add(clearanceNudgeMangaFire)
-    }
   }
+
+  fmt.Printf("Still waiting on %s in Firefox - trying the request again meanwhile...\n", c.baseURL)
 }
 
-// retryUntilCleared runs _attempt over and over, parking for fresh
-// cookies between tries, until it comes back with something other than a
-// challenge. Anything that is not a challenge is handed straight back.
+// retryUntilCleared runs _attempt over and over, parking between tries, until
+// it comes back with something other than a challenge. Anything that is not a
+// challenge is handed straight back.
 func (c *mangaFireClient) retryUntilCleared(_attempt func() error) error {
   err := _attempt()
+  if !isChallengedMangaFire(err) {
+    return err
+  }
+
+  fmt.Printf("\nCloudflare refused the plain request and no working Firefox cookies are at hand.\n")
+  fmt.Printf("Open %s in Firefox and let the page finish loading - this picks the new cookies up on its own.\n", c.baseURL)
+  fmt.Printf("Waiting - nothing is skipped, this carries on where it left off. Ctrl-C to stop.\n")
+
   for isChallengedMangaFire(err) {
     c.waitForClearance()
     err = _attempt()
@@ -427,20 +483,23 @@ func (c *mangaFireClient) retryUntilCleared(_attempt func() error) error {
   return err
 }
 
-func (c *mangaFireClient) get(_path string, _params [][2]string) ([]byte, int, error) {
-  requestURL := apiURLMangaFire(_path, _params)
+func (c *mangaFireClient) get(_path string, _params [][2]string, _withCookies bool) ([]byte, int, error) {
+  requestURL := apiRequestURLMangaFire(c.baseURL, _path, _params)
 
   req, err := http.NewRequest("GET", requestURL, nil)
   if err != nil {
     return nil, 0, err
   }
-  // The clearance is tied to the user agent that earned it, so these two have
-  // to travel together, and waf_pass has to come along or Cloudflare answers
-  // with a challenge page no matter how fresh the clearance is
-  req.Header.Set("User-Agent", c.userAgent)
+  req.Header.Set("User-Agent", plainUserAgentMangaFire)
   req.Header.Set("Accept", "application/json")
-  req.Header.Set("Referer", fmt.Sprintf("%s/", baseURLMangaFire))
-  req.Header.Set("Cookie", fmt.Sprintf("cf_clearance=%s; waf_pass=%s", c.clearance, c.wafPass))
+  req.Header.Set("Referer", fmt.Sprintf("%s/", c.baseURL))
+  if _withCookies {
+    // The clearance is tied to the user agent that earned it, so these two
+    // have to travel together, and waf_pass has to come along or Cloudflare
+    // answers with a challenge page no matter how fresh the clearance is
+    req.Header.Set("User-Agent", c.firefoxUserAgent)
+    req.Header.Set("Cookie", fmt.Sprintf("cf_clearance=%s; waf_pass=%s", c.clearance, c.wafPass))
+  }
 
   resp, err := c.http.Do(req)
   if err != nil {
@@ -463,6 +522,9 @@ func (c *mangaFireClient) get(_path string, _params [][2]string) ([]byte, int, e
   return body, resp.StatusCode, nil
 }
 
+// Cloudflare answers a refused request with 403. The api itself also uses 403
+// for a bad vrf signature ("Missing token.") - the body is kept in the error
+// so that case can be told apart by eye.
 func isChallengedMangaFire(_err error) bool {
   return _err != nil && strings.Contains(_err.Error(), "HTTP 403")
 }
@@ -471,7 +533,7 @@ func isChallengedMangaFire(_err error) bool {
 // whole challenge page at the user
 func describeFailureMangaFire(_err error) string {
   if isChallengedMangaFire(_err) {
-    return fmt.Sprintf("Cloudflare clearance expired. Open %s in Firefox, let the page load, then run this again.", baseURLMangaFire)
+    return fmt.Sprintf("Cloudflare refused the request on both routes. Open %s in Firefox, let the page load, then run this again.", baseURLMangaFire)
   }
 
   return fmt.Sprintf("%v", _err)
@@ -481,13 +543,19 @@ func describeFailureMangaFire(_err error) string {
 // firefox clearance
 ////////////////////////////////////////////////////////////////////////////////
 
+// The cookie db is polled while waiting on Firefox, so say this only once
+var sqliteMissingWarnedMangaFire bool
+
 // Firefox keeps its cookies in plain text inside a sqlite file. Rather than
 // pull in a sqlite driver for one query, shell out to the sqlite3 binary.
 // Both cookies have to come from the same profile - pairing a clearance with
 // another profile's waf_pass gets the challenge page back.
 func firefoxCookiesMangaFire() (string, string) {
   if _, err := exec.LookPath("sqlite3"); err != nil {
-    fmt.Println("sqlite3 is not installed, so the Firefox cookies cannot be read.")
+    if !sqliteMissingWarnedMangaFire {
+      sqliteMissingWarnedMangaFire = true
+      fmt.Println("sqlite3 is not installed, so the Firefox cookies cannot be read.")
+    }
     return "", ""
   }
 
@@ -817,8 +885,8 @@ func downloadImageMangaFire(_client *mangaFireClient, _imageURL string) []byte {
       fmt.Println("Error creating request:", err)
       continue
     }
-    req.Header.Set("User-Agent", _client.userAgent)
-    req.Header.Set("Referer", fmt.Sprintf("%s/", baseURLMangaFire))
+    req.Header.Set("User-Agent", _client.userAgent())
+    req.Header.Set("Referer", fmt.Sprintf("%s/", _client.baseURL))
 
     resp, err := _client.http.Do(req)
     if err != nil {
