@@ -284,49 +284,51 @@ type MangaChaptersMangadex struct {
   Total int `json:"total"`
 }
 
-func getMangaChaptersMangadex(_mangaInfo MangaDataMangadex) (MangaChaptersMangadex, error) {
-  var queryLimit int = 500
-  var offset int = 0
-  var selectedLanguage string = "en"
-
-  var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
-  var mangaChapters MangaChaptersMangadex
+// One page of the manga feed. The feed comes back in no particular order, so
+// every page has to be fetched before the list is sorted - a partial fetch is a
+// random subset of the chapters, not the first N of them.
+func getMangaChaptersPageMangadex(_mangaId string, _limit int, _offset int, _language string) (MangaChaptersMangadex, error) {
+  var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaId, _limit, _offset, _language)
+  var page MangaChaptersMangadex
 
   resp, err := http.Get(url)
   if err != nil {
-    return mangaChapters, errors.New("Could get manga chapter")
+    return page, errors.New("Could not get manga chapters")
   }
-  defer resp.Body.Close()
   body, err := ioutil.ReadAll(resp.Body)
+  resp.Body.Close()
   if err != nil {
-    return mangaChapters, errors.New("Could not parse body")
+    return page, errors.New("Could not parse body")
   }
-  if err := json.Unmarshal(body, &mangaChapters); err != nil {
+  if err := json.Unmarshal(body, &page); err != nil {
     fmt.Println("Could not unmarshal JSON")
-    return mangaChapters, errors.New("Could not unmarshal JSON")
+    return page, errors.New("Could not unmarshal JSON")
+  }
+  return page, nil
+}
+
+func getMangaChaptersMangadex(_mangaInfo MangaDataMangadex) (MangaChaptersMangadex, error) {
+  var queryLimit int = 500
+  var selectedLanguage string = "en"
+
+  mangaChapters, err := getMangaChaptersPageMangadex(_mangaInfo.Data.ID, queryLimit, 0, selectedLanguage)
+  if err != nil {
+    return mangaChapters, err
   }
 
-  if mangaChapters.Total > queryLimit {
-    for offset < queryLimit {
-      offset += 500
-      var url string = fmt.Sprintf("https://api.mangadex.org/manga/%s/feed?includeFuturePublishAt=0&limit=%d&offset=%d&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic&translatedLanguage[]=%s", _mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
-      var mangaChapters2 MangaChaptersMangadex
-
-      resp, err := http.Get(url)
-      if err != nil {
-        return mangaChapters, errors.New("Could get manga chapters")
-      }
-      defer resp.Body.Close()
-      body, err := ioutil.ReadAll(resp.Body)
-      if err != nil {
-        return mangaChapters, errors.New("Could not parse body")
-      }
-      if err := json.Unmarshal(body, &mangaChapters2); err != nil {
-        fmt.Println("Could not unmarshal JSON")
-        return mangaChapters, errors.New("Could not unmarshal JSON")
-      }
-      mangaChapters.Data = append(mangaChapters.Data, mangaChapters2.Data...)
+  // Total is the real chapter count, so keep paging until the offset passes it.
+  // The old loop stopped after the second page, which silently dropped every
+  // chapter past 1000 on long running titles.
+  for offset := queryLimit; offset < mangaChapters.Total; offset += queryLimit {
+    page, err := getMangaChaptersPageMangadex(_mangaInfo.Data.ID, queryLimit, offset, selectedLanguage)
+    if err != nil {
+      return mangaChapters, err
     }
+    // A stale Total must not keep this spinning on empty pages
+    if len(page.Data) == 0 {
+      break
+    }
+    mangaChapters.Data = append(mangaChapters.Data, page.Data...)
   }
 
   sort.Slice(mangaChapters.Data, func(i, j int) bool {
